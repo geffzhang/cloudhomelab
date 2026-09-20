@@ -88,3 +88,22 @@ metadata:
 spec:
   selector: { app: api }
   ports: [{ name: http, port: 3001 }]
+---
+# Prometheus scrapes /metrics from inside the cluster. The ingress never routes
+# to it, so the endpoint stays private while Prometheus still reaches it.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: capoaberto-api
+  namespace: capoaberto-staging
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels: { app: api }
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 60s
+  namespaceSelector:
+    matchNames: [capoaberto-staging]
