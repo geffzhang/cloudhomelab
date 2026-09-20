@@ -29,6 +29,16 @@ grafana:
   # Only curated dashboards (sidecar ConfigMaps): the chart's ~30 default
   # dashboards are noise for a single-node homelab.
   defaultDashboardsEnabled: false
+  additionalDataSources:
+    # Logs live beside metrics so a spike on a panel can be explained without
+    # leaving Grafana or opening a shell on the node.
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki.logging:3100
+      jsonData:
+        maxLines: 500
   admin:
     existingSecret: grafana-admin
     userKey: admin-user
