@@ -48,6 +48,12 @@ alloy:
       // The API logs JSON; level becomes a label so a dashboard can filter
       // errors without scanning every line.
       loki.process "app" {
+        // Kubernetes runtime chatter that describes the node, not the app.
+        // Dropping it here rather than in a dashboard query keeps Loki's
+        // index small and every panel readable by default.
+        stage.drop {
+          expression = "(?i)fsnotify|too many open files|TLS handshake error|http: superfluous"
+        }
         stage.json {
           expressions = { level = "level", event = "event" }
         }
