@@ -17,7 +17,7 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: api
-          image: ghcr.io/originlabsbr/capoaberto-api:2617d6da0999535a9ffef10f4241c133fb58f2f6
+          image: ghcr.io/originlabsbr/capoaberto-api:45f1e93fc29e26c784869d30688989729629a0f9
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -59,6 +59,11 @@ spec:
               valueFrom: { secretKeyRef: { name: capoaberto-secrets, key: resend-api-key } }
             - name: EMAIL_FROM
               valueFrom: { secretKeyRef: { name: capoaberto-secrets, key: email-from } }
+            # Transactional mail is sent from a noreply address, so without
+            # this a reply to a report reaches a mailbox nobody reads. Not a
+            # secret: the address is published on the site.
+            - name: EMAIL_REPLY_TO
+              value: contato@capoaberto.com.br
             - name: APP_URL
               value: https://staging.capoaberto.com.br
             - name: API_URL
