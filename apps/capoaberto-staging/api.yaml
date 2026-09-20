@@ -59,6 +59,11 @@ spec:
               valueFrom: { secretKeyRef: { name: capoaberto-secrets, key: resend-api-key } }
             - name: EMAIL_FROM
               valueFrom: { secretKeyRef: { name: capoaberto-secrets, key: email-from } }
+            # Transactional mail is sent from a noreply address, so without
+            # this a reply to a report reaches a mailbox nobody reads. Not a
+            # secret: the address is published on the site.
+            - name: EMAIL_REPLY_TO
+              value: contato@capoaberto.com.br
             - name: APP_URL
               value: https://staging.capoaberto.com.br
             - name: API_URL
