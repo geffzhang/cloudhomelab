@@ -1,0 +1,64 @@
+# Alloy tails container stdout and ships it to Loki. Labels stay coarse
+# (namespace, app, pod): a label per request or per user would multiply
+# streams and defeat Loki's index on a small node.
+controller:
+  type: daemonset
+
+alloy:
+  resources:
+    requests: { cpu: 20m, memory: 64Mi }
+    limits: { memory: 128Mi }
+  configMap:
+    content: |
+      discovery.kubernetes "pods" {
+        role = "pod"
+      }
+
+      discovery.relabel "pods" {
+        targets = discovery.kubernetes.pods.targets
+
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          regex         = "capoaberto.*|monitoring|logging|argocd"
+          action        = "keep"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_namespace"]
+          target_label  = "namespace"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_label_app"]
+          target_label  = "app"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_name"]
+          target_label  = "pod"
+        }
+        rule {
+          source_labels = ["__meta_kubernetes_pod_container_name"]
+          target_label  = "container"
+        }
+      }
+
+      loki.source.kubernetes "pods" {
+        targets    = discovery.relabel.pods.output
+        forward_to = [loki.process.app.receiver]
+      }
+
+      // The API logs JSON; level becomes a label so a dashboard can filter
+      // errors without scanning every line.
+      loki.process "app" {
+        stage.json {
+          expressions = { level = "level", event = "event" }
+        }
+        stage.labels {
+          values = { level = "", event = "" }
+        }
+        forward_to = [loki.write.default.receiver]
+      }
+
+      loki.write "default" {
+        endpoint {
+          url = "http://loki:3100/loki/api/v1/push"
+        }
+      }
