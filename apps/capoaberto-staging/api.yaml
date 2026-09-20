@@ -68,6 +68,10 @@ spec:
               value: https://staging.capoaberto.com.br
             - name: API_URL
               value: http://api:3001
+            # Exact account allowed to bootstrap the admin role after a clean
+            # environment reset. All other registrations remain regular users.
+            - name: ADMIN_EMAIL
+              value: mateuseap@mateuseap.com
           resources:
             requests: { cpu: 20m, memory: 64Mi }
             limits: { memory: 192Mi }
