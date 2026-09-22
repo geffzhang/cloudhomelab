@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: capoaberto
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: web }
+  template:
+    metadata:
+      labels: { app: web }
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: ghcr.io/originlabsbr/capoaberto-web:5cc8c8b598f05637b7836c46fd363b0b3b7ba22e
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          ports: [{ containerPort: 3000 }]
+          env:
+            - { name: NEXT_PUBLIC_ENV, value: production }
+            - { name: API_URL, value: http://api:3001 }
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { memory: 192Mi }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 3000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/health, port: 3000 }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: capoaberto
+spec:
+  selector: { app: web }
+  ports: [{ name: http, port: 3000 }]

@@ -1,0 +1,16 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: capoaberto-db
+  namespace: capoaberto
+spec:
+  encryptedData:
+    DATABASE_URL: AgAfmRhkHkAUGamV87PgyO/Ivz0FHWFL1+5y3jpfZr1sAR03PgAYMqK1cI+ZfzkGaJA6v5rqvzgmWNy+sa1e9rNyeq2nrV6vNWbw2DOykfYmHbzoje9KSq5WGs1mOsSb2J+UmJ6CeVaYT8GZSGkX9oIqYdUDGm/KlsvuI+UVFN7Du2RqzVP4Nck/vxBV7e32ITRQfy7sHUd+N5DivshOKWEeF+F2Ooi1gi21pRlSreL0jdLtLYbBfHE1NaQ6xCh94yufE5b4z8HG3HpWt6mvCPYaViCEgy7hFgY7J74XzZE/ijUIbNTOp0zSKFFhsHNq9K8GU+xuWB+CVnICEYWEEx/IupJ1iNNnfAenv0t12HKE25GyYAXT23w2+vw2L3+VkHbHFR54c7ogGjg7B8jNHjTC5jCTy0PSFXbC1zWzITLQoln3e0HI80b8ZuRchR/1Ab++J9ur66PwCJ2AcS3BqOJmCSE3Mms2HZ61FBgKMTBsrL6SemLbYoDj1A79TgsBh0e7yuXwQiXSlp+HpIjO7hcV2T7zPAjfJbIjKbsg+SIK9bLD8IBhOl93whahDUmk53DKPHoinqiBopG8u1GTD9KbI8Ew8eCEumnSMucLoVCnnByvATJyEvBk21HK6iDgIuh9GS6CA9qqHB+Gc5Lpm3XEaYnrIR3l1IiGWljzhskewvCByFxGNzqZ5oGQcp5n8aouzbxPXWOP7dqVCRrfMenebg1C2JTH8qkJvE85q6qd+gf3SxG2tANoxd672ZqbtmOnWAyXVNXbE6BPhrhGCR4xoZ3HUM7JjQcuXamfbtturBZFStm75t2ifXk8Ffq2Dfi+EF4kMvpYg77L8vRGAPo=
+  template:
+    metadata:
+      creationTimestamp: null
+      name: capoaberto-db
+      namespace: capoaberto
+    type: Opaque

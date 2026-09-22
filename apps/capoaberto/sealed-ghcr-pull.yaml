@@ -1,0 +1,16 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: ghcr-pull
+  namespace: capoaberto
+spec:
+  encryptedData:
+    .dockerconfigjson: AgBgCZPSvtJ+RmagULZW2fp2IcvEy3sz0p1XiV3jTGhpNU1VP4g3eaUvYSbhshr9tWY9dMM3npljN9hUk+uE0l4LufkwoxdpD11XYQWHdevVBKjc7xgBJAS9AiuWWNx1SIsu2UHIplB0VDGgqUUDBXLjEESYXu7vWb/H8ha79De/8pHsUShavFekdSSvnmhOTNyd3De8dRRxTRQcMbV1DApdZ0bT1yNO9E3UrvKR3/H8i847FuYxljdJknL41INgCyah0y910nwHJds6vSgOubEzhij7nAW6z7WVpUF3Cs8DsJ8LhP4gi+bfFFVe9RNr2yQ737GDydNrpvvW2FkPjYDQHEZuvj/AgOgKMNRSFh7oXWeF7B5EXeImN54Tzm88k79yO64QKQeqH08N4bcJOupWzB2X3U2TVyQz9kBdXeu2aQrp0kaJVkpbuKV+m0u0nO1AzbBRu5vh6lwO5EQ0pdjBEuaGsn4WeM4FpYGcXKPd+fkTFBZPnnyvabtXm+lGGoC9P/9wumfJFhm/8AQKsL54fZTnqXSWx7wtLdHeLmL7gHdivxxgAoIlX0GPALtJwMcobM8HZJfB14Pbf1P0ieNHKWKTwG+D7R2cc/bNdOzjOcUbCKWVP4QJSW9o3HcqHYo4eEFcGBJmw7rslMIb1NcTHLdt/rXNg4DmdHbPinS0c4faWX4qCVGh9BK9kQNPbp0=
+  template:
+    metadata:
+      creationTimestamp: null
+      name: ghcr-pull
+      namespace: capoaberto
+    type: kubernetes.io/dockerconfigjson
