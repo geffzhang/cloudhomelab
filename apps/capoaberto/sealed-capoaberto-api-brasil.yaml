@@ -1,0 +1,16 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: capoaberto-api-brasil
+  namespace: capoaberto
+spec:
+  encryptedData:
+    API_BRASIL_BEARER_TOKEN: AgCW69Axaedh1ltIRBoKRriv4WxKV9s/HgCmQ0vgZed1stbN7qqPP+0zy+Wvk9S7t+sUVRkjrgoLFOhqD61MGGJZNTGbkI0/CsooudLRQ/v1R7GjcZIQe8BfthHu8C4ARzv/AY+uu29F00trwPgCxCSqy+jgkE5t/B9wElpiZDs30XeSQe4/zJZRncb8kncVxWvwYDT9HUN6Rn1KKCEtl93v7UIRuekR49+EYy3RJx5z3UnAr8SQ5zBMgtNbJfpe3dUP8d1oE0QCMD98rYX+XD9V82SYTmoMkkScFOyMoBrF8biFpZIJGE7gUIJX1NWZhwMloziXK58GAiVk8ARYDjH93rtbyBSNDuW4Ebb4nwEuogAnYWHRo6at2E/QDPgUQmp1OhvqwdPPKwulUC1/KJ9gcLq/arYfrr7P4W/1xN0tAepQY83lNLkYinsiXRoW/zA1ggb/VxfHw9D4wCzm8qELomGcnB4arIJgxQGx3hcO+k0GgX/CSkrIKPfgIDousjn2mB9J50F+sKeiePvqNeyHL20PcOyDvZLzTHQBxB7Q/+pTC/IF7gVO5JpG7ksLUbQm4cUnOFQrwijDxtn/1IIwoXjO1k0pUFf166HLzOyCZZ9FYqTI07ak/bhO7yAqwnpa8pCRYIvD9nxCBYybzXEaGm0W+M82bfxSr/j9V5T+0E1Au7vj9AJhrPIp0az/IDTe1sjdV2OqxKQTqqoeOIjlor6om6+/EDyGeQ7wBNuFnxWsowSKutf/eQTrD1k74uI+KTyGnZV6h+FJCqqMZmnlaifdr65o5No5YTvDqiHHx68fP8LfobjE8ioBefhdNP5FP32XNbDHcYjgsFAfFI7qqNDbPpvZ0+5lgd8xnOapEGTiCIrEib7jXGjcW04xTb/gyBlpVsVct0BpHN3CvIwJ5wYkCNpAmH6GONwOL8+bOjlhUtJMLB5aghF7rC5SGCtCYNDTvjjQZohcteqjPEKvIpcp3THRaA1SdSq+E9eHFOE1YYdtEtpzcUhE2LYaJc0VjO+yxn3AbMG4o1YOfd2BNwJle/cpwPfq2ukTWwGmfiqhEeqespYVX8wL/k23eGax5n+D7EFWb9n9ankru2BgpLnOwqf5tDgFDnxxM0TvXg1ElcRkRWgwzXEUWRkhZA==
+  template:
+    metadata:
+      creationTimestamp: null
+      name: capoaberto-api-brasil
+      namespace: capoaberto
+    type: Opaque
