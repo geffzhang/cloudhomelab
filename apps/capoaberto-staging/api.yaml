@@ -23,7 +23,7 @@ spec:
       # never fall behind the code it ships with (capoaberto #153).
       initContainers:
         - name: migrate
-          image: ghcr.io/originlabsbr/capoaberto-api:11537df88aa31a14d6ebd85bd6e8f08a9bce2e2e
+          image: ghcr.io/originlabsbr/capoaberto-api:bb1830da45350e5c859cf4813021013595bd5fb7
           imagePullPolicy: IfNotPresent
           command: [/app/node_modules/.bin/node-pg-migrate, up, -m, migrations, -j, sql]
           securityContext:
@@ -38,7 +38,7 @@ spec:
             limits: { memory: 192Mi }
       containers:
         - name: api
-          image: ghcr.io/originlabsbr/capoaberto-api:11537df88aa31a14d6ebd85bd6e8f08a9bce2e2e
+          image: ghcr.io/originlabsbr/capoaberto-api:bb1830da45350e5c859cf4813021013595bd5fb7
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -55,6 +55,10 @@ spec:
             - name: API_BRASIL_BEARER_TOKEN
               valueFrom:
                 secretKeyRef: { name: capoaberto-api-brasil, key: API_BRASIL_BEARER_TOKEN }
+            # Encrypts the unparsed supplier answer at rest (admin raw download).
+            - name: RAW_SUPPLIER_KEY
+              valueFrom:
+                secretKeyRef: { name: capoaberto-raw-vault, key: RAW_SUPPLIER_KEY }
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef: { name: capoaberto-db, key: DATABASE_URL }
