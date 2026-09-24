@@ -16,6 +16,8 @@ spec:
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
         seccompProfile: { type: RuntimeDefault }
       # Apply pending migrations before the API starts, so the schema can
       # never fall behind the code it ships with (capoaberto #153).
