@@ -48,7 +48,7 @@ spec:
             - name: DATABASE_URL
               valueFrom: { secretKeyRef: { name: capoaberto-db, key: DATABASE_URL } }
             - { name: PAYMENT_PROVIDER, value: asaas }
-            - { name: ASAAS_ENV, value: sandbox }
+            - { name: ASAAS_ENV, value: production }
             - { name: ASAAS_USER_AGENT, value: capoaberto }
             - name: ASAAS_API_KEY
               valueFrom: { secretKeyRef: { name: capoaberto-asaas, key: ASAAS_API_KEY } }
