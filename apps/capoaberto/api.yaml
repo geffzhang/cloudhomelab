@@ -19,7 +19,7 @@ spec:
       # never fall behind the code it ships with (capoaberto #153).
       initContainers:
         - name: migrate
-          image: ghcr.io/originlabsbr/capoaberto-api:995b92cb738a749164a6d1112224f462bd8e7d03
+          image: ghcr.io/originlabsbr/capoaberto-api:5b22371297becf7e3dbc18f145e2b2578555f987
           imagePullPolicy: IfNotPresent
           command: [/app/node_modules/.bin/node-pg-migrate, up, -m, migrations, -j, sql]
           securityContext:
@@ -34,7 +34,7 @@ spec:
             limits: { memory: 192Mi }
       containers:
         - name: api
-          image: ghcr.io/originlabsbr/capoaberto-api:995b92cb738a749164a6d1112224f462bd8e7d03
+          image: ghcr.io/originlabsbr/capoaberto-api:5b22371297becf7e3dbc18f145e2b2578555f987
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
@@ -42,7 +42,7 @@ spec:
           ports: [{ containerPort: 3001 }]
           env:
             - { name: NODE_ENV, value: production }
-            - { name: VEHICLE_PROVIDER_MODE, value: api-brasil-sandbox }
+            - { name: VEHICLE_PROVIDER_MODE, value: api-brasil }
             - name: API_BRASIL_BEARER_TOKEN
               valueFrom: { secretKeyRef: { name: capoaberto-api-brasil, key: API_BRASIL_BEARER_TOKEN } }
             - name: DATABASE_URL
