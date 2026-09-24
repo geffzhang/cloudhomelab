@@ -1,0 +1,16 @@
+---
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  creationTimestamp: null
+  name: capoaberto-raw-vault
+  namespace: capoaberto-staging
+spec:
+  encryptedData:
+    RAW_SUPPLIER_KEY: AgB/Zowbwsp3l1BLmvztUt8cCN9EnVYmHIMEyiOoxhWRTHp+qQsFwer7FT2CXqWyMdyRY9vmoIHfO1ELBh0e3wTjEpaW2/I2U8cu3PN5Xmz9784L4mxdAnYVJdoRqwm8Tgyx6Cn0foIjl7eDSMynLb7dzHw0U9hxxob8G3eoS8nCP4dRGx4QQfo4DqFPAEGcSnMYUCbJ/7cj0Y9+PKv/0QDfxoViF5afB9ZmE/HVsSyk110bMdfWmigKgbumjpILs7FGGbDUG8pW0vt4iXcm6ZIEM1V+XTRFkitVunxNoWJ3eoHKrF3goehhmaN5nI2fwE11BWMGtPkl0AzOOvKXCsHW/+A1w/Gq7WGdGly1m68x4iIHEaGGG3TF/W2vpcsNW3o/eF21D7HO4Hg5Ezf7AUw/KhpUd9kTu9Wv+Q648aWrRXfY9YfO1vM9mLvOdx7U9Q5EVAHSSeU9sPQzbtoGcjmvcI0or+DTd100qLNvIRqCPNKkQE/VWm8la46qrIoH3YnKEkj4+1/E81sSXJ/oWTY6/JLMK6w7dLDPRPrISu8msGY7xu1pjmu24BM3SJ/0hKAxDVhJ+j5az61X5CCAhEk2GtbDbK97Y5E07Lx/Jj+Zft/m9HF+h0gbrH2QJp+fYog2cuWvM70AUfwRSGf7qr1x1GWQATlcZ+HH9hWmzvCqGXFSjrqRBNJ8cu+MIiGed/wC/+GgrfaS5QtIIo5emJERxfl3UJTwxQs0R/Wh729FTXdQ59QXZcZ0zqFW6P6q3wApbS6KnL+RQ5RfCdVGGmx7
+  template:
+    metadata:
+      creationTimestamp: null
+      name: capoaberto-raw-vault
+      namespace: capoaberto-staging
