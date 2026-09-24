@@ -13,11 +13,13 @@ spec:
     spec:
       imagePullSecrets:
         - name: ghcr-pull
+      automountServiceAccountToken: false
       securityContext:
+        runAsNonRoot: true
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: web
-          image: ghcr.io/originlabsbr/capoaberto-web:2cbf9b0efde9d8520b30d4b47cc6d989bf8cb51b
+          image: ghcr.io/originlabsbr/capoaberto-web:c3627c46eb66f2fe0ec8ae36d6aaa65a2359d8be
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
