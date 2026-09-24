@@ -13,13 +13,17 @@ spec:
     spec:
       imagePullSecrets:
         - name: ghcr-pull
+      automountServiceAccountToken: false
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
         seccompProfile: { type: RuntimeDefault }
       # Apply pending migrations before the API starts, so the schema can
       # never fall behind the code it ships with (capoaberto #153).
       initContainers:
         - name: migrate
-          image: ghcr.io/originlabsbr/capoaberto-api:2cbf9b0efde9d8520b30d4b47cc6d989bf8cb51b
+          image: ghcr.io/originlabsbr/capoaberto-api:81873cdc606193bb7ebceac429dbf8c7b04d6a75
           imagePullPolicy: IfNotPresent
           command: [/app/node_modules/.bin/node-pg-migrate, up, -m, migrations, -j, sql]
           securityContext:
@@ -34,7 +38,7 @@ spec:
             limits: { memory: 192Mi }
       containers:
         - name: api
-          image: ghcr.io/originlabsbr/capoaberto-api:2cbf9b0efde9d8520b30d4b47cc6d989bf8cb51b
+          image: ghcr.io/originlabsbr/capoaberto-api:81873cdc606193bb7ebceac429dbf8c7b04d6a75
           imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
