@@ -45,24 +45,29 @@ kubectl -n kube-system get secret -l sealedsecrets.bitnami.com/sealed-secrets-ke
   -o yaml > sealing-key-backup.yaml   # store OUTSIDE git (password manager)
 ```
 
-## Backup retention and the R2 free tier
+## Backup retention on Tencent COS
 
-The nightly CronJob keeps the bucket inside the Cloudflare R2 free tier (10 GB)
-by three independent limits, enforced before every upload: a 14-day age cutoff,
-a maximum of 14 dumps, and a hard total-size cap of 8 GB. If a new dump would
-push the bucket past 8 GB even after pruning the oldest, the upload is skipped
-and a warning is logged. Losing one night's backup is preferred over exceeding
-the free tier. Dumps are tiny today (kilobytes), so this only matters if the
-database grows by orders of magnitude.
+The nightly CronJob uploads to Tencent COS using its S3-compatible API. Set the
+COS bucket name (including its APPID suffix), region, Secret ID, and Secret Key
+in `docs/examples/chesskernel-secrets.example.yaml`, then seal the Secret and
+commit the resulting SealedSecret to `apps/chesskernel/sealed-secrets.yaml`.
+The existing R2 SealedSecret is not reusable: its ciphertext contains R2
+credentials and uses a different Secret schema. Replace it with COS values
+before the next scheduled backup run.
+The job applies three limits before each upload: a 14-day age cutoff, a maximum
+of 14 dumps, and a hard total-size cap of 8 GiB for `chesskernel` (512 MiB for
+staging). If a dump still exceeds its cap after pruning, the upload is skipped
+and a warning is logged.
 
 ## Restore a database backup
 
 ```bash
 # list available dumps
-aws s3 ls s3://homelab-backups/chesskernel/ --endpoint-url $R2_ENDPOINT
+aws s3 ls s3://homelab-backups-APPID/chesskernel/ \
+  --region ap-guangzhou --endpoint-url https://cos.ap-guangzhou.myqcloud.com
 # download + restore into the running cluster
-aws s3 cp s3://homelab-backups/chesskernel/chesskernel-YYYY-MM-DD.sql.gz . \
-  --endpoint-url $R2_ENDPOINT
+aws s3 cp s3://homelab-backups-APPID/chesskernel/chesskernel-YYYY-MM-DD.sql.gz . \
+  --region ap-guangzhou --endpoint-url https://cos.ap-guangzhou.myqcloud.com
 gunzip -c chesskernel-YYYY-MM-DD.sql.gz | \
   kubectl -n chesskernel exec -i statefulset/postgres -- \
     psql -U chesskernel chesskernel

@@ -78,12 +78,11 @@ Curated study links for the technologies this platform is built on, grouped by t
 - [Default values](https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml)
 - [kube-prometheus project](https://github.com/prometheus-operator/kube-prometheus)
 
-## Cloudflare R2 and the S3 API
+## Tencent COS and the S3 API
 
-- [Cloudflare R2 documentation](https://developers.cloudflare.com/r2/)
-- [S3 API compatibility](https://developers.cloudflare.com/r2/api/s3/api/)
-- [Using aws-cli with R2](https://developers.cloudflare.com/r2/examples/aws/aws-cli/)
-- [R2 API tokens](https://developers.cloudflare.com/r2/api/tokens/)
+- [Tencent Cloud Object Storage (COS)](https://www.tencentcloud.com/document/product/436)
+- [COS S3-compatible API](https://www.tencentcloud.com/document/product/436/37421)
+- [COS API keys and access management](https://www.tencentcloud.com/document/product/598)
 
 ## Docker
 

@@ -42,7 +42,7 @@ Infrastructure services support those apps:
 | 📈 **Grafana + Prometheus** | Metrics, trimmed for a 1 vCPU node (`grafana.lab.mateuseap.com`) |
 | 🔐 **cert-manager** | Automatic Let's Encrypt TLS for every cluster host |
 | 🗝 **sealed-secrets** | Encrypted secrets, safe in public git |
-| 💾 **Nightly backups** | `pg_dump` to Cloudflare R2, 14-day rotation |
+| 💾 **Nightly backups** | `pg_dump` to Tencent COS, 14-day rotation |
 
 The externally hosted **[HomeLab Landing](https://github.com/mateuseap/homelab-landing)** is the public showcase. It is separate from the five self-hosted applications and cluster infrastructure.
 
@@ -66,7 +66,7 @@ flowchart TB
         mon["Prometheus + Grafana<br/>curated Homelab Overview dashboard"]
         cron["CronJob<br/>nightly pg_dump"]
     end
-    r2[("Cloudflare R2<br/>backups, 14-day rotation")]
+    cos[("Tencent COS<br/>backups, 14-day rotation")]
     ghcr[("GHCR<br/>container images")]
     users(("browsers"))
 
@@ -92,7 +92,7 @@ flowchart TB
     ghcr -.->|image pulls| pixel
     ghcr -.->|image pulls| mix
     ghcr -.->|image pulls| sotto
-    cron --> r2
+    cron --> cos
     seal -.-> chess
     seal -.-> sotto
     seal -.-> router
@@ -157,7 +157,7 @@ Point `*.lab.yourdomain.com` at the machine, seal your secrets, restore the late
 | TLS | cert-manager v1.15.3 + Let's Encrypt HTTP-01 |
 | Secrets | sealed-secrets |
 | Monitoring | kube-prometheus-stack 62.7.0 (5-day retention, alertmanager off) |
-| Backups | CronJob `pg_dump` to Cloudflare R2 (S3-compatible) |
+| Backups | CronJob `pg_dump` to Tencent COS (S3-compatible) |
 | Registry | GHCR, images built by GitHub Actions in each app repo |
 
 ## Repository layout
@@ -192,7 +192,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. A merge to `main` d
 
 ## Learn more
 
-New to any part of the stack (Kubernetes, k3s, ArgoCD, cert-manager, sealed-secrets, Traefik, Prometheus, Grafana, R2)? The [references](docs/references.md) collect official study links grouped by topic.
+New to any part of the stack (Kubernetes, k3s, ArgoCD, cert-manager, sealed-secrets, Traefik, Prometheus, Grafana, COS)? The [references](docs/references.md) collect official study links grouped by topic.
 
 ## License
 

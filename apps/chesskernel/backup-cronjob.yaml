@@ -1,14 +1,13 @@
-# Nightly pg_dump to Cloudflare R2 (S3-compatible), one dump per database on
+# Nightly pg_dump to Tencent COS (S3-compatible), one dump per database on
 # the shared Postgres instance. Retention per database is bounded three ways
-# so the bucket can never exceed the R2 free tier (10 GB): a 14-day age
+# to cap storage use: a 14-day age
 # cutoff, a max object count, and a hard total-size cap. If a new dump would
-# push its folder past the cap even after pruning, the upload is skipped
-# (losing that night's backup is preferred over exceeding the free tier).
-# R2 credentials come from the sealed secret r2-backup-credentials.
+# push its folder past the cap even after pruning, the upload is skipped.
+# COS credentials come from the sealed secret cos-backup-credentials.
 #
 # capoaberto_staging (Capo Aberto staging DB, DEC-22) is dumped with the same
 # chesskernel superuser role used to administer this shared instance (never
-# used as the application's own runtime credential) into its own R2 prefix,
+# used as the application's own runtime credential) into its own COS prefix,
 # with a much smaller cap since it is a small staging schema.
 apiVersion: batch/v1
 kind: CronJob
@@ -39,30 +38,30 @@ spec:
               args:
                 - |
                   set -eu
-                  E="--endpoint-url ${R2_ENDPOINT}"
+                  E="--endpoint-url https://cos.${COS_REGION}.myqcloud.com"
 
                   apk add --no-cache aws-cli >/dev/null
 
-                  # oldest-first list of keys under a given R2 folder
+                  # oldest-first list of keys under a given COS folder
                   list_keys() {
-                    aws s3api list-objects-v2 --bucket "$R2_BUCKET" --prefix "$1/" \
+                    aws s3api list-objects-v2 --bucket "$COS_BUCKET" --prefix "$1/" \
                       $E --query 'sort_by(Contents,&LastModified)[].Key' --output text 2>/dev/null \
                       | tr '\t' '\n' | grep -v '^None$' || true
                   }
                   total_bytes() {
-                    b=$(aws s3api list-objects-v2 --bucket "$R2_BUCKET" --prefix "$1/" \
+                    b=$(aws s3api list-objects-v2 --bucket "$COS_BUCKET" --prefix "$1/" \
                       $E --query 'sum(Contents[].Size)' --output text 2>/dev/null || echo 0)
                     [ "$b" = "None" ] && b=0
                     echo "${b:-0}"
                   }
-                  rm_key() { aws s3 rm "s3://${R2_BUCKET}/$1" $E >/dev/null 2>&1 || true; }
+                  rm_key() { aws s3 rm "s3://${COS_BUCKET}/$1" $E >/dev/null 2>&1 || true; }
 
-                  # $1=pg user  $2=db name  $3=R2 folder  $4=max total bytes
+                  # $1=pg user  $2=db name  $3=COS folder  $4=max total bytes
                   # $5=max backups kept  $6=max age in days
                   backup_db() {
                     PG_USER="$1"; DB="$2"; FOLDER="$3"
                     MAX_TOTAL_BYTES="$4"; MAX_BACKUPS="$5"; MAX_AGE_DAYS="$6"
-                    PREFIX="s3://${R2_BUCKET}/${FOLDER}"
+                    PREFIX="s3://${COS_BUCKET}/${FOLDER}"
 
                     # 1. prune by age
                     CUTOFF=$(date -d "@$(( $(date +%s) - MAX_AGE_DAYS*86400 ))" +%F)
@@ -96,17 +95,16 @@ spec:
                       aws s3 cp "$FILE" "${PREFIX}/" $E >/dev/null
                       echo "$FOLDER backup ok: $FILE (${DUMP_BYTES} bytes); folder now $(total_bytes "$FOLDER") bytes"
                     else
-                      echo "WARNING: skipped $FOLDER upload, a single dump (${DUMP_BYTES} bytes) exceeds the ${MAX_TOTAL_BYTES}-byte cap. No data uploaded, free tier protected."
+                      echo "WARNING: skipped $FOLDER upload, a single dump (${DUMP_BYTES} bytes) exceeds the ${MAX_TOTAL_BYTES}-byte cap. No data uploaded."
                     fi
                     rm -f "$FILE"
                   }
 
-                  # Free-tier guardrails, same as before: 8 GiB / 14 backups / 14 days,
-                  # leaving 2 GB margin under the 10 GB R2 free tier.
+                  # Main database storage cap: 8 GiB / 14 backups / 14 days.
                   backup_db chesskernel chesskernel chesskernel 8589934592 14 14
 
                   # Capo Aberto staging: small schema-only DB during the MVP (DEC-22),
-                  # so a 512 MiB cap leaves ample combined margin under the free tier.
+                  # so it has an independent 512 MiB storage cap.
                   backup_db chesskernel capoaberto_staging capoaberto-staging 536870912 14 14
               env:
                 - name: PGPASSWORD
@@ -114,16 +112,19 @@ spec:
                     secretKeyRef: { name: chesskernel-secrets, key: postgres-password }
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
-                    secretKeyRef: { name: r2-backup-credentials, key: access-key-id }
+                    secretKeyRef: { name: cos-backup-credentials, key: secret-id }
                 - name: AWS_SECRET_ACCESS_KEY
                   valueFrom:
-                    secretKeyRef: { name: r2-backup-credentials, key: secret-access-key }
-                - name: R2_ENDPOINT
+                    secretKeyRef: { name: cos-backup-credentials, key: secret-key }
+                - name: AWS_DEFAULT_REGION
                   valueFrom:
-                    secretKeyRef: { name: r2-backup-credentials, key: endpoint }
-                - name: R2_BUCKET
+                    secretKeyRef: { name: cos-backup-credentials, key: region }
+                - name: COS_REGION
                   valueFrom:
-                    secretKeyRef: { name: r2-backup-credentials, key: bucket }
+                    secretKeyRef: { name: cos-backup-credentials, key: region }
+                - name: COS_BUCKET
+                  valueFrom:
+                    secretKeyRef: { name: cos-backup-credentials, key: bucket }
               resources:
                 requests: { cpu: 20m, memory: 64Mi }
                 limits: { memory: 128Mi }

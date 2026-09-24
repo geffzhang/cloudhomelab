@@ -16,7 +16,7 @@ git repo. Kubernetes is an explicit goal (learning/portfolio), not just a means.
 | Monitoring | kube-prometheus-stack, trimmed (5d retention, alertmanager off) | Grafana = live metrics dashboard |
 | TLS | cert-manager + Let's Encrypt HTTP-01 via Traefik | No DNS API tokens needed |
 | Secrets | sealed-secrets | Encrypted in git; repo stays public-safe |
-| Backups | Nightly CronJob pg_dump → Cloudflare R2, 14-day rotation | Services + data migration |
+| Backups | Nightly CronJob pg_dump → Tencent COS, 14-day rotation | Services + data migration |
 | Domains | `*.lab.mateuseap.com` wildcard → VPS; apex/www stay on GitHub Pages | One DNS record covers all future apps |
 | Registry | GHCR, images built by GitHub Actions in each app repo | Free for public repos |
 

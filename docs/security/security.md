@@ -75,7 +75,7 @@ The following was applied directly on the VPS on 2026-07-23:
 
 ## Pending items
 
-- **Rotate the Cloudflare R2 token.** It transited an external channel during setup. Rotate it in the Cloudflare dashboard and re-seal `r2-backup-credentials`.
+- **Provision Tencent COS backup credentials.** Create a bucket-scoped Secret ID and Secret Key, then seal them as `cos-backup-credentials` before enabling the backup CronJob.
 - **Rotate the old VPS root password.** It was exposed before SSH went key-only. Even with password login disabled, rotate it.
 
 ## Single-node tradeoffs (accepted)

@@ -61,7 +61,7 @@ graph TB
     Prom -. scrapes .-> PServer
     Prom -. scrapes .-> LiveKit
     Prom -. scrapes .-> KSM
-    CBackup -. pg_dump .-> R2["Cloudflare R2"]
+    CBackup -. pg_dump .-> COS["Tencent COS"]
 ```
 
 The control plane and the kubelet run inside a single k3s process. Traefik, CoreDNS, and local-path storage ship with k3s. Namespaces carry a human-readable `homelab.mateuseap.com/description` annotation and are protected from pruning (see [Namespaces](#namespaces)). Sotto streams bilingual English/Portuguese transcription through Deepgram and requests AI-generated summaries through 9Router. 9Router is an authenticated AI gateway with PVC-backed OAuth token and API key storage.
@@ -159,15 +159,15 @@ The single `letsencrypt-prod` ClusterIssuer solves HTTP-01 through Traefik, so n
 flowchart LR
     Cron["CronJob postgres-backup<br/>0 3 * * * (03:00 UTC)"]
     PG["PostgreSQL<br/>(chesskernel)"]
-    R2["Cloudflare R2<br/>(S3-compatible)"]
+    COS["Tencent COS<br/>(S3-compatible)"]
 
     Cron -- "pg_dump | gzip" --> Dump["chesskernel-DATE.sql.gz"]
     PG --> Cron
-    Dump -- "aws s3 cp" --> R2
-    Cron -- "prune keys older than 14 days" --> R2
+    Dump -- "aws s3 cp" --> COS
+    Cron -- "prune by age, count, and size" --> COS
 ```
 
-Credentials come from the sealed `r2-backup-credentials`. Restore is a manual `gunzip | kubectl exec ... psql` documented in the runbook, with a mandated quarterly restore drill. See [ADR-006](../adr/006-nightly-backups-to-cloudflare-r2.md).
+Credentials come from the sealed `cos-backup-credentials`. Restore is a manual `gunzip | kubectl exec ... psql` documented in the runbook, with a mandated quarterly restore drill. See [ADR-006](../adr/006-nightly-backups-to-cloudflare-r2.md).
 
 ## Namespaces
 

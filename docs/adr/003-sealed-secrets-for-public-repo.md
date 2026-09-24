@@ -5,7 +5,7 @@
 
 ## Context
 
-This repository is public, and being public is a goal: it is a portfolio piece and a reference others can read. GitOps also requires that everything the cluster needs live in git, including secrets (database passwords, JWT signing key, Redis password, LiveKit API keys, and the Cloudflare R2 backup credentials). Plain Kubernetes `Secret` objects are only base64-encoded, not encrypted, so committing them to a public repo would expose them.
+This repository is public, and being public is a goal: it is a portfolio piece and a reference others can read. GitOps also requires that everything the cluster needs live in git, including secrets (database passwords, JWT signing key, Redis password, LiveKit API keys, and the Tencent COS backup credentials). Plain Kubernetes `Secret` objects are only base64-encoded, not encrypted, so committing them to a public repo would expose them.
 
 The options considered were an external secret manager (Vault, cloud KMS, SOPS with a cloud key), an out-of-band secret bootstrap (secrets applied by hand, never committed), and sealed-secrets.
 
@@ -24,5 +24,5 @@ The sealed secrets live in `apps/chesskernel/sealed-secrets.yaml` and `apps/pixe
 
 - Sealed secrets are bound to the controller's key. A rebuilt cluster generates a new key, so the existing sealed secrets cannot be decrypted unless the key is restored. The sealing key must be backed up out of band (password manager), never committed. See the security doc for the backup, restore, and rotation procedure.
 - Sealing is a manual step in the workflow: edit a plaintext template in `/tmp`, run `kubeseal`, commit the result, then shred the plaintext. Plaintext secrets must never be committed.
-- The R2 backup credentials are sealed the same way (`r2-backup-credentials`). Because the R2 token transited an external channel during setup, it is on the pending-rotation list in the security doc.
+- The COS backup credentials are sealed the same way (`cos-backup-credentials`); Secret ID and Secret Key must be restricted to the backup bucket.
 - Because the sealed-secrets controller is a wave-0 dependency, application pods that mount its output do not start until decryption succeeds (see ADR-002).
