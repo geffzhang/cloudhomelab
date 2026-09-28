@@ -11,10 +11,10 @@ Options: a cloud provider's managed backup, an S3-compatible object store, or co
 
 ## Decision
 
-Run a **nightly `CronJob` that `pg_dump`s the databases, gzips them, and uploads to Tencent COS** over its S3-compatible API, with a **14-day rotation** (`apps/chesskernel/backup-cronjob.yaml`).
+Run a **nightly `CronJob` that `pg_dump`s the ChessKernel database, gzips it, and uploads to Tencent COS** over its S3-compatible API, with a **14-day rotation** (`apps/chesskernel/backup-cronjob.yaml`).
 
 - Schedule `0 3 * * *` (03:00 UTC), `concurrencyPolicy: Forbid` so runs never overlap.
-- The job runs a `postgres:16-alpine` container, installs `aws-cli`, dumps `chesskernel` and `capoaberto_staging`, and uploads each gzip dump under its own COS prefix using the bucket region endpoint.
+- The job runs a `postgres:16-alpine` container, installs `aws-cli`, dumps `chesskernel`, and uploads the gzip dump under its COS prefix using the bucket region endpoint.
 - Before upload it prunes by age, object count, and total-size caps; this bounds retention and storage use.
 - COS credentials (Secret ID, Secret Key, region, bucket) come from the sealed secret `cos-backup-credentials` (see ADR-003).
 

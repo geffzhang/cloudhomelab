@@ -5,10 +5,6 @@
 # push its folder past the cap even after pruning, the upload is skipped.
 # COS credentials come from the sealed secret cos-backup-credentials.
 #
-# capoaberto_staging (Capo Aberto staging DB, DEC-22) is dumped with the same
-# chesskernel superuser role used to administer this shared instance (never
-# used as the application's own runtime credential) into its own COS prefix,
-# with a much smaller cap since it is a small staging schema.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -103,9 +99,6 @@ spec:
                   # Main database storage cap: 8 GiB / 14 backups / 14 days.
                   backup_db chesskernel chesskernel chesskernel 8589934592 14 14
 
-                  # Capo Aberto staging: small schema-only DB during the MVP (DEC-22),
-                  # so it has an independent 512 MiB storage cap.
-                  backup_db chesskernel capoaberto_staging capoaberto-staging 536870912 14 14
               env:
                 - name: PGPASSWORD
                   valueFrom:

@@ -19,7 +19,7 @@ alloy:
 
         rule {
           source_labels = ["__meta_kubernetes_namespace"]
-          regex         = "capoaberto.*|monitoring|logging|argocd"
+          regex         = "monitoring|logging|argocd"
           action        = "keep"
         }
         rule {
