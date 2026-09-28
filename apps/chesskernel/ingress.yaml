@@ -1,0 +1,53 @@
+# Two Ingress objects on purpose: Traefik drops an ingress's whole TLS config
+# if ANY referenced secret is missing. the lab host's cert couldn't issue before the
+# *.lab.csharpkit.com DNS wildcard exists, keeping it separate means the
+# production domain never waits on it.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chesskernel
+  namespace: chesskernel
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: chesskernel.com
+      http: &routes
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: client
+                port:
+                  number: 80
+    - host: www.chesskernel.com
+      http: *routes
+  tls:
+    - hosts: [chesskernel.com, www.chesskernel.com]
+      secretName: chesskernel-own-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chesskernel-lab
+  namespace: chesskernel
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: chesskernel.lab.csharpkit.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: client
+                port:
+                  number: 80
+  tls:
+    - hosts: [chesskernel.lab.csharpkit.com]
+      secretName: chesskernel-lab-tls

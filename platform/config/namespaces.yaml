@@ -1,0 +1,104 @@
+# Descriptive metadata for the cluster's namespaces. Names follow ecosystem
+# conventions on purpose (argocd, cert-manager, monitoring are what every
+# tool and doc assume); the description annotation is where the human
+# context lives. Prune=false: deleting a line here must never delete a
+# namespace and everything in it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chesskernel
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      ChessKernel chess platform: web client, NestJS API + Socket.IO server,
+      PostgreSQL, Redis. Public at chesskernel.com.
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pixelhub
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      PixelHub 2D virtual world: Phaser client, Colyseus server, LiveKit SFU
+      for proximity voice. Public at pixelhub.lab.csharpkit.com.
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mixtape
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      Mixtape: open library of interactive 3D sound equipment (MP3 click
+      wheel, CD player). Single Node/Express service, PVC-backed storage.
+      Public at mixtape.lab.csharpkit.com.
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      Observability stack (kube-prometheus-stack): Prometheus, Grafana with
+      the curated Homelab Overview dashboard, exporters. Public Grafana at
+      grafana.lab.csharpkit.com.
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      TLS automation: cert-manager issuing and renewing Let's Encrypt
+      certificates for every ingress host via HTTP-01.
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      GitOps control plane: ArgoCD watches github.com/geffzhang/homelab and
+      keeps this cluster matching it. UI at argo.lab.csharpkit.com.
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: 9router
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      9Router: self-hosted AI gateway providing rate-limit fallback for
+      Claude Code across 40+ providers. Holds subscription OAuth tokens and
+      issued API keys on its PVC. Public at 9router.lab.csharpkit.com.
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sotto
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      Sotto: AI meeting copilot. Captures a browser tab or screen, streams the
+      audio to a speech engine, and renders a live transcript. Public at
+      sotto.lab.csharpkit.com, gated by a shared session token.
+  labels:
+    app.kubernetes.io/part-of: homelab

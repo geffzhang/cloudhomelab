@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sotto
+  namespace: sotto
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: sotto.lab.csharpkit.com
+      http:
+        paths:
+          # Everything enters through the client nginx, which serves the
+          # bundle and proxies /api onward to the server. One backend keeps
+          # the WebSocket upgrade on the same hop as the static assets.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: client
+                port: { number: 80 }
+  tls:
+    - hosts: [sotto.lab.csharpkit.com]
+      secretName: sotto-tls

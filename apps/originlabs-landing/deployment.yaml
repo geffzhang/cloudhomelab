@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: originlabs-landing
+  namespace: originlabs-landing
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: originlabs-landing }
+  template:
+    metadata:
+      labels: { app: originlabs-landing }
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: originlabs-landing
+          image: ghcr.io/originlabsbr/originlabs-landing:2505343b7dfbf7e7fc8dbf656e33419d08185a15
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          ports: [{ containerPort: 8080 }]
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 96Mi }
+          readinessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: originlabs-landing
+  namespace: originlabs-landing
+spec:
+  selector: { app: originlabs-landing }
+  ports: [{ name: http, port: 80, targetPort: 8080 }]

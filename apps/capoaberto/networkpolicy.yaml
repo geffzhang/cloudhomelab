@@ -1,0 +1,37 @@
+---
+# Only Traefik reaches the web and API pods from outside the namespace, and
+# only Prometheus reaches the API's /metrics. Egress stays open: the API calls
+# Postgres in chesskernel, API Brasil, Asaas and Resend.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: web-ingress
+  namespace: capoaberto
+spec:
+  podSelector:
+    matchLabels: { app: web }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+      ports: [{ port: 3000 }]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-ingress
+  namespace: capoaberto
+spec:
+  podSelector:
+    matchLabels: { app: api }
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: kube-system }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: monitoring }
+        - podSelector:
+            matchLabels: { app: web }
+      ports: [{ port: 3001 }]

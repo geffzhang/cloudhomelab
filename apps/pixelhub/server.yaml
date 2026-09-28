@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+  namespace: pixelhub
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: server }
+  template:
+    metadata:
+      labels: { app: server }
+    spec:
+      securityContext:
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: server
+          image: ghcr.io/mateuseap/pixelhub-server:latest
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          ports: [{ containerPort: 2567 }]
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: LIVEKIT_URL
+              value: wss://livekit.lab.csharpkit.com
+            - name: LIVEKIT_API_KEY
+              valueFrom:
+                secretKeyRef: { name: pixelhub-secrets, key: livekit-api-key }
+            - name: LIVEKIT_API_SECRET
+              valueFrom:
+                secretKeyRef: { name: pixelhub-secrets, key: livekit-api-secret }
+          resources:
+            requests: { cpu: 30m, memory: 100Mi }
+            limits: { memory: 250Mi }
+          readinessProbe:
+            httpGet: { path: /health, port: 2567 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # Named `server` on purpose: the client nginx proxies /colyseus to
+  # http://server:2567 (same pattern as chesskernel).
+  name: server
+  namespace: pixelhub
+  labels: { app: server }
+spec:
+  selector: { app: server }
+  ports: [{ name: http, port: 2567 }]
+---
+# Prometheus scrapes /metrics once a minute: a handful of series, negligible
+# load. The release label is required by kube-prometheus-stack's selector.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pixelhub-server
+  namespace: pixelhub
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels: { app: server }
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 60s
+  namespaceSelector:
+    matchNames: [pixelhub]

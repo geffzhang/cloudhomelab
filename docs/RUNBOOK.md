@@ -1,0 +1,156 @@
+# Runbook
+
+Operational procedures. Everything here assumes SSH access to the VPS and
+`kubectl` = `k3s kubectl` (alias it: `alias kubectl='k3s kubectl'`).
+
+## Bootstrap a fresh machine (or migrate)
+
+1. **DNS**: point `*.lab.csharpkit.com` (A record, wildcard) at the new VPS IP.
+   Also point chesskernel's own domain at it.
+2. **Bootstrap**:
+   ```bash
+  git clone https://github.com/geffzhang/homelab && cd homelab
+   sudo bash bootstrap/install.sh
+   ```
+   The bootstrap also hardens the host automatically and idempotently: 2 GB
+   swap, fail2ban, the node-exporter (9100) firewall, and SSH key-only auth
+   (the last only activates once your public key is in `authorized_keys`, so a
+   fresh box is never locked out; add your key and re-run to lock it down).
+3. **Secrets** (first boot of a new cluster only, sealed secrets are bound to
+   the cluster's key): re-seal and commit, see § Secrets below.
+4. **Watch it converge**: `https://argo.lab.csharpkit.com`, all apps green.
+   (Initial admin password: see install.sh output.)
+5. **Restore data**: § Restore below.
+
+Target: under 30 minutes end to end.
+
+## Secrets (sealed-secrets)
+
+Install the CLI once on your laptop: `brew install kubeseal` /
+[releases](https://github.com/bitnami-labs/sealed-secrets/releases).
+
+```bash
+cp docs/examples/chesskernel-secrets.example.yaml /tmp/secrets.yaml
+# edit /tmp/secrets.yaml with real values
+kubeseal --controller-namespace kube-system --format yaml \
+  < /tmp/secrets.yaml > apps/chesskernel/sealed-secrets.yaml
+git add apps/chesskernel/sealed-secrets.yaml && git commit -m "chore: seal secrets" && git push
+shred -u /tmp/secrets.yaml
+```
+
+**Back up the sealing key** (lets you reuse sealed secrets on a rebuilt cluster):
+
+```bash
+kubectl -n kube-system get secret -l sealedsecrets.bitnami.com/sealed-secrets-key \
+  -o yaml > sealing-key-backup.yaml   # store OUTSIDE git (password manager)
+```
+
+## Backup retention on Tencent COS
+
+The nightly CronJob uploads to Tencent COS using its S3-compatible API. Set the
+COS bucket name (including its APPID suffix), region, Secret ID, and Secret Key
+in `docs/examples/chesskernel-secrets.example.yaml`, then seal the Secret and
+commit the resulting SealedSecret to `apps/chesskernel/sealed-secrets.yaml`.
+The existing R2 SealedSecret is not reusable: its ciphertext contains R2
+credentials and uses a different Secret schema. Replace it with COS values
+before the next scheduled backup run.
+The job applies three limits before each upload: a 14-day age cutoff, a maximum
+of 14 dumps, and a hard total-size cap of 8 GiB for `chesskernel` (512 MiB for
+staging). If a dump still exceeds its cap after pruning, the upload is skipped
+and a warning is logged.
+
+## Restore a database backup
+
+```bash
+# list available dumps
+aws s3 ls s3://homelab-backups-APPID/chesskernel/ \
+  --region ap-guangzhou --endpoint-url https://cos.ap-guangzhou.myqcloud.com
+# download + restore into the running cluster
+aws s3 cp s3://homelab-backups-APPID/chesskernel/chesskernel-YYYY-MM-DD.sql.gz . \
+  --region ap-guangzhou --endpoint-url https://cos.ap-guangzhou.myqcloud.com
+gunzip -c chesskernel-YYYY-MM-DD.sql.gz | \
+  kubectl -n chesskernel exec -i statefulset/postgres -- \
+    psql -U chesskernel chesskernel
+```
+
+**Quarterly drill**: restore the latest dump into a scratch database
+(`createdb scratch && psql scratch < dump`) and sanity-check row counts.
+A backup that has never been restored is not a backup.
+
+## Deploy a new version of an app
+
+First-party app CI pushes `:latest` to GHCR on merge to main. Restart only the
+Deployment names present in the affected namespace:
+
+```bash
+kubectl -n <app> rollout restart deploy/<deployment>
+```
+
+9Router uses the third-party `decolua/9router:latest` image rather than GHCR.
+Automating image rollouts with argocd-image-updater is a later milestone.
+
+## Add a new project
+
+1. Create `apps/<name>/` with the Deployment, Service, Ingress, storage, and sealed secrets it needs. Choose the closest existing app shape; do not assume every app needs separate client and server Deployments.
+2. Add `argocd/app-<name>.yaml`, using an existing application manifest as the base and changing its name, path, and namespace.
+3. Push. ArgoCD picks it up; cert-manager issues TLS for its subdomain. Done, no DNS change needed (wildcard covers it), no SSH needed.
+
+## Cutover from docker-compose (one-time, chesskernel)
+
+1. Dump the live DB: `docker exec chesskernel_postgres pg_dump -U chesskernel chesskernel | gzip > pre-k3s.sql.gz`
+2. `docker compose -f docker/docker-compose.prod.yml down` (frees ports 80/443)
+3. Run bootstrap (§ above), seal secrets, wait for green.
+4. Restore `pre-k3s.sql.gz` (§ Restore).
+5. Verify: login + play a game on both domains, HTTPS valid.
+6. Rollback if needed: `docker compose up -d` brings the old stack back.
+
+## 9Router inference reliability
+
+Claude Code uses `https://9router.lab.csharpkit.com/v1`. Traffic follows this path:
+
+```text
+Claude Code
+-> public DNS
+-> Traefik TLS ingress
+-> 9Router Service
+-> 9Router pod
+-> selected provider
+```
+
+9Router is pinned to a reviewed image digest. `apps/9router/streaming.yaml` gives its Traefik backend long response-header and idle-connection timeouts. The Deployment gives upstream connection, first-chunk, and stream-stall timeouts enough room for long reasoning requests.
+
+Check current state:
+
+```bash
+kubectl -n 9router get pod,svc,ingress
+kubectl -n 9router rollout status deploy/9router
+curl -fsS https://9router.lab.csharpkit.com/api/health
+curl -fsS https://9router.lab.csharpkit.com/api/version
+kubectl -n 9router logs deploy/9router --since=1h | \
+  grep -Ei '499|429|502|503|504|ECONNRESET|ResponseAborted|timeout|fetch failed'
+```
+
+Interpret failures by boundary:
+
+- `429` with `all accounts locked` is provider quota, not Traefik.
+- `TOKEN_REFRESH` with `invalid_grant` means provider OAuth must be reconnected in 9Router.
+- `ECONNRESET` or `ResponseAborted` in 9Router logs means provider or client stream disconnected.
+- Traefik errors without matching 9Router request logs indicate ingress or network failure.
+- An interrupted deploy is not successful until rollout, public health, streamed inference, and post-test logs pass.
+
+Before upgrade or recovery, back up Deployment, Ingress, and `/data/db/data.sqlite*`. Roll back image or manifests with the saved YAML, then verify the same health and stream checks. Never write credentials or database copies into Git.
+
+## Troubleshooting quickies
+
+| Symptom | Check |
+|---|---|
+| App red in ArgoCD | `kubectl -n <ns> describe pod ...`, usually missing sealed secret |
+| No TLS cert | `kubectl describe certificate -A`, DNS must already resolve for HTTP-01 |
+| Node pressure | Grafana, the VPS section of the Homelab Overview dashboard; CPU throttling shows here first |
+| ArgoCD UI slow | It shares 1 vCPU with everything, normal during syncs |
+
+## pixelhub voice (LiveKit)
+
+- Secrets: seal `docs/examples/pixelhub-secrets.example.yaml` (same kubeseal flow as chesskernel) into `apps/pixelhub/sealed-secrets.yaml`. The `livekit-keys` entry is the combined `"key: secret"` string LIVEKIT_KEYS expects.
+- Network: signaling is wss on `livekit.lab.csharpkit.com` through Traefik; WebRTC media bypasses the ingress via hostPorts `7882/udp` (mux) and `7881/tcp` (fallback). A new machine must allow those ports.
+- Verify: `curl -s https://livekit.lab.csharpkit.com` returns LiveKit's OK page; livekit pod log shows "starting LiveKit server"; in the app, two browsers with voice enabled hear each other when avatars are adjacent.

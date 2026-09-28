@@ -1,0 +1,89 @@
+# kube-prometheus-stack values, trimmed for 1 vCPU / 4GB single-node.
+alertmanager:
+  enabled: false # no paging pipeline on a homelab; Grafana shows state
+
+prometheus:
+  prometheusSpec:
+    retention: 5d
+    retentionSize: 2GB
+    # 60s scrape (default is 30s) halves series ingestion and memory on the
+    # shared vCPU. This is what stops the OOM kills that punched gaps in the
+    # dashboard: Prometheus was hitting its memory cap and restarting.
+    scrapeInterval: 60s
+    evaluationInterval: 60s
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: local-path
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 3Gi
+    resources:
+      # Bumped from 500Mi: actual RSS reached ~508Mi and got OOM-killed.
+      # 768Mi cap plus the node's 2 GB swap gives real headroom.
+      requests: { cpu: 50m, memory: 420Mi }
+      limits: { cpu: 300m, memory: 768Mi }
+
+grafana:
+  # Only curated dashboards (sidecar ConfigMaps): the chart's ~30 default
+  # dashboards are noise for a single-node homelab.
+  defaultDashboardsEnabled: false
+  additionalDataSources:
+    # Logs live beside metrics so a spike on a panel can be explained without
+    # leaving Grafana or opening a shell on the node.
+    - name: Loki
+      type: loki
+      uid: loki
+      access: proxy
+      url: http://loki.logging:3100
+      jsonData:
+        maxLines: 500
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  persistence:
+    enabled: true
+    storageClassName: local-path
+    size: 1Gi
+  resources:
+    requests: { cpu: 20m, memory: 100Mi }
+    limits: { memory: 200Mi }
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts: [grafana.lab.csharpkit.com]
+    tls:
+      - hosts: [grafana.lab.csharpkit.com]
+        secretName: grafana-tls
+
+# Single-node: control-plane components run inside k3s's single process and
+# don't expose these endpoints separately, so scraping them only creates noise.
+kubeControllerManager: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeProxy: { enabled: false }
+kubeEtcd: { enabled: false } # k3s uses sqlite, not etcd
+
+kube-state-metrics:
+  resources:
+    requests: { cpu: 10m, memory: 32Mi }
+    limits: { memory: 64Mi }
+
+prometheus-node-exporter:
+  resources:
+    requests: { cpu: 10m, memory: 24Mi }
+    limits: { memory: 48Mi }
+
+prometheusOperator:
+  resources:
+    requests: { cpu: 20m, memory: 100Mi }
+    limits: { memory: 200Mi }
+  admissionWebhooks:
+    # Webhook certs via cert-manager instead of the chart's patch Jobs.
+    # The Jobs are ArgoCD sync hooks that self-delete on completion and
+    # race ArgoCD's status check, marking every sync as failed.
+    certManager:
+      enabled: true

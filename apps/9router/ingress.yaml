@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: 9router
+  namespace: 9router
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    traefik.ingress.kubernetes.io/service.serverstransport: 9router-streaming@kubernetescrd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: 9router.lab.csharpkit.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: router
+                port: { number: 80 }
+  tls:
+    - hosts: [9router.lab.csharpkit.com]
+      secretName: 9router-tls
