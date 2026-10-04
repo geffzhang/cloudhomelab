@@ -17,18 +17,17 @@ GitOps · k3s · ArgoCD · Reproducible in ~30 minutes
 
 Hand-configured servers rot: undocumented tweaks pile up, migrations become archaeology, and every new project means another SSH session. This repo is the single source of truth for my VPS. ArgoCD watches it and makes the cluster match, so the machine is disposable and the repo is forever.
 
-- **Declarative.** Every workload, cert, secret, and backup job lives here as YAML.
+- **Declarative.** Every workload, certificate, and secret lives here as YAML.
 - **Reproducible.** Fresh VPS to full platform in one script plus one DNS record.
 - **Self-healing.** Drift gets reverted automatically; deleted resources come back.
 - **Public-safe.** Secrets are sealed with the cluster key, so the repo can stay open.
 
 ## What runs on it
 
-Five user-facing applications are self-hosted on the 1 vCPU / 4 GB VPS:
+Four user-facing applications are self-hosted on the 1 vCPU / 4 GB VPS:
 
 | App | Purpose |
 |-----|---------|
-| ♟️ **[ChessKernel](https://github.com/mateuseap/chesskernel)** | Chess platform at [chesskernel.com](https://chesskernel.com) |
 | 👾 **[PixelHub](https://github.com/mateuseap/pixelhub)** | Gather-style 2D world with proximity chat and voice |
 | 🎵 **[Mixtape](https://github.com/mateuseap/mixtape)** | Open library of interactive 3D sound equipment (MP3 player, CD player) |
 | 🎙 **Sotto** | Bilingual English/Portuguese live transcription with AI-generated summaries through 9Router (`sotto.lab.csharpkit.com`) |
@@ -42,9 +41,8 @@ Infrastructure services support those apps:
 | 📈 **Grafana + Prometheus** | Metrics, trimmed for a 1 vCPU node (`grafana.lab.csharpkit.com`) |
 | 🔐 **cert-manager** | Automatic Let's Encrypt TLS for every cluster host |
 | 🗝 **sealed-secrets** | Encrypted secrets, safe in public git |
-| 💾 **Nightly backups** | `pg_dump` to Tencent COS, 14-day rotation |
 
-The externally hosted **[HomeLab Landing](https://github.com/mateuseap/homelab-landing)** is the public showcase. It is separate from the five self-hosted applications and cluster infrastructure.
+The externally hosted **[HomeLab Landing](https://github.com/mateuseap/homelab-landing)** is the public showcase. It is separate from the four self-hosted applications and cluster infrastructure.
 
 ## Architecture at a glance
 
@@ -58,20 +56,16 @@ flowchart TB
         traefik["Traefik ingress<br/>TLS termination, host routing"]
         cm["cert-manager<br/>Let's Encrypt certificates"]
         seal["sealed-secrets<br/>decrypts SealedSecrets in-cluster"]
-        chess["ChessKernel<br/>client, server, postgres, redis"]
         pixel["PixelHub<br/>client, server, LiveKit"]
         mix["Mixtape<br/>server, storage"]
         sotto["Sotto<br/>English/Portuguese transcription, AI summary"]
         router["9Router<br/>authenticated AI gateway, storage"]
         mon["Prometheus + Grafana<br/>curated Homelab Overview dashboard"]
-        cron["CronJob<br/>nightly pg_dump"]
     end
-    cos[("Tencent COS<br/>backups, 14-day rotation")]
     ghcr[("GHCR<br/>container images")]
     users(("browsers"))
 
     gh -->|poll| argo
-    argo --> chess
     argo --> pixel
     argo --> mix
     argo --> sotto
@@ -81,19 +75,15 @@ flowchart TB
     argo --> cm
     cm --> traefik
     users -->|HTTPS| traefik
-    traefik --> chess
     traefik --> pixel
     traefik --> mix
     traefik --> sotto
     traefik --> router
     traefik --> argo
     traefik --> mon
-    ghcr -.->|image pulls| chess
     ghcr -.->|image pulls| pixel
     ghcr -.->|image pulls| mix
     ghcr -.->|image pulls| sotto
-    cron --> cos
-    seal -.-> chess
     seal -.-> sotto
     seal -.-> router
 ```
@@ -103,7 +93,7 @@ flowchart TB
 ```mermaid
 flowchart LR
     dev(["push to main"])
-    subgraph app["first-party app repos<br/>ChessKernel, PixelHub, Mixtape, Sotto"]
+    subgraph app["first-party app repos<br/>PixelHub, Mixtape, Sotto"]
         ci["GitHub Actions<br/>build image"]
     end
     ghcr[("GHCR")]
@@ -180,11 +170,11 @@ Point `*.lab.yourdomain.com` at the machine, seal your secrets, restore the late
 | [Networking](docs/networking.md) | Wildcard DNS, Traefik SNI routing, hostname map, LiveKit media exception |
 | [Security](docs/security/security.md) | Sealed-secrets model, TLS, host hardening, single-node tradeoffs |
 | [Adding an App](docs/operations/adding-an-app.md) | Manifests, Application, sealed secret, ingress, ServiceMonitor, upgrades |
-| [Runbook](docs/RUNBOOK.md) | Bootstrap, migrate, restore, deploy, troubleshoot |
+| [Runbook](docs/RUNBOOK.md) | Bootstrap, operate, deploy, troubleshoot |
 | [Design Spec](docs/specs/) | Original platform design note and rationale |
 | [References](docs/references.md) | Curated study links for every technology in the stack |
 
-Monitoring uses one curated **Homelab Overview** dashboard with six sections (VPS, Kubernetes, ChessKernel, PixelHub, Sotto, 9Router). ChessKernel and PixelHub expose cluster-internal application `/metrics` through ServiceMonitors, LiveKit exposes its cluster-internal native metrics endpoint, and Kubernetes metrics provide resource and health panels for Sotto and 9Router.
+Monitoring uses one curated **Homelab Overview** dashboard with five sections (VPS, Kubernetes, PixelHub, Sotto, 9Router). PixelHub exposes cluster-internal application `/metrics` through a ServiceMonitor, LiveKit exposes its cluster-internal native metrics endpoint, and Kubernetes metrics provide resource and health panels for Sotto and 9Router.
 
 ## Contributing
 
@@ -192,7 +182,7 @@ Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. A merge to `main` d
 
 ## Learn more
 
-New to any part of the stack (Kubernetes, k3s, ArgoCD, cert-manager, sealed-secrets, Traefik, Prometheus, Grafana, COS)? The [references](docs/references.md) collect official study links grouped by topic.
+New to any part of the stack (Kubernetes, k3s, ArgoCD, cert-manager, sealed-secrets, Traefik, Prometheus, or Grafana)? The [references](docs/references.md) collect official study links grouped by topic.
 
 ## License
 

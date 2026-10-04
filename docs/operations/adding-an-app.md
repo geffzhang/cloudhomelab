@@ -2,7 +2,7 @@
 
 Everything the cluster runs is declared in this repo. Adding a project means writing manifests, sealing its secrets, and pushing. ArgoCD picks it up, cert-manager issues its TLS, and the wildcard DNS already resolves its host. No SSH and no DNS change are needed.
 
-This guide uses `<name>` for the new project. Choose an existing app with a matching shape: ChessKernel or PixelHub for split client/server apps, Sotto for a private GHCR client/server app with app-level login, Mixtape for a single PVC-backed service, or 9Router for a third-party PVC-backed service. Copy only the relevant pattern.
+This guide uses `<name>` for the new project. Choose an existing app with a matching shape: PixelHub for a split client/server app, Sotto for a private GHCR client/server app with app-level login, Mixtape for a single PVC-backed service, or 9Router for a third-party PVC-backed service. Copy only the relevant pattern.
 
 ## 1. Application manifests in `apps/<name>/`
 
@@ -13,7 +13,7 @@ A typical web app has:
 - **`client.yaml`**: a Deployment (nginx serving the static bundle) plus a Service on port 80. The client nginx proxies its API path to the in-cluster `server` Service.
 - **`server.yaml`**: a Deployment for the API plus a Service, and usually a ServiceMonitor (see step 5). Name the Service `server` so the client's nginx proxy target (`http://server:<port>`) resolves.
 - **`ingress.yaml`**: the public route (see step 4).
-- Stateful pieces as needed: a StatefulSet with `volumeClaimTemplates` for databases (see `apps/chesskernel/postgres.yaml`), a Deployment with `strategy: Recreate` and a single PVC for single-writer caches (see `apps/chesskernel/redis.yaml`).
+- Stateful pieces as needed: a Deployment with `strategy: Recreate` and a PVC for single-writer persistent data (see `apps/mixtape/deployment.yaml` or `apps/9router/deployment.yaml`). Use a StatefulSet with `volumeClaimTemplates` when the application requires per-replica storage.
 
 Set resource `requests` and `limits` on every container. The node is 1 vCPU / 4 GB and CPU is the scarce resource; unbounded pods starve everything else. Copy the sizing in the existing apps as a baseline.
 
@@ -21,7 +21,7 @@ First-party images are pulled from GHCR as `ghcr.io/mateuseap/<name>-<component>
 
 ## 2. The Application manifest in `argocd/`
 
-Add `argocd/app-<name>.yaml`. Copy `argocd/app-chesskernel.yaml` and change the name, `path`, and destination namespace:
+Add `argocd/app-<name>.yaml` using the following Application manifest pattern; set the app name, source path, and destination namespace:
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -54,8 +54,8 @@ If you want the namespace to carry a description and be protected from pruning l
 Never commit plaintext secrets. Create a plaintext `Secret` in `/tmp`, seal it, commit the sealed output, and shred the plaintext.
 
 ```bash
-cp docs/examples/chesskernel-secrets.example.yaml /tmp/secrets.yaml
-# edit /tmp/secrets.yaml: set metadata.namespace to <name> and fill real values
+cp docs/examples/pixelhub-secrets.example.yaml /tmp/secrets.yaml
+# edit /tmp/secrets.yaml: set metadata.name and metadata.namespace to <name>, then fill real values
 kubeseal --controller-namespace kube-system --format yaml \
   < /tmp/secrets.yaml > apps/<name>/sealed-secrets.yaml
 shred -u /tmp/secrets.yaml
@@ -88,11 +88,11 @@ spec:
       secretName: <name>-tls
 ```
 
-The wildcard record already resolves the host, so cert-manager issues its certificate over HTTP-01 on first request. If a service also needs a domain that does not yet resolve (as ChessKernel's lab host did before the wildcard existed), split it into a second Ingress so a pending certificate cannot drop TLS for the working host. See the [networking doc](../networking.md).
+The wildcard record already resolves the host, so cert-manager issues its certificate over HTTP-01 on first request. If a service also needs a custom domain that does not yet resolve, split it into a second Ingress so a pending certificate cannot drop TLS for the working host. See the [networking doc](../networking.md).
 
 ## 5. ServiceMonitor (metrics)
 
-If the app exposes Prometheus metrics, add a `ServiceMonitor` so kube-prometheus-stack scrapes it. The pattern (from `apps/chesskernel/server.yaml`):
+If the app exposes Prometheus metrics, add a `ServiceMonitor` so kube-prometheus-stack scrapes it. The pattern (from `apps/pixelhub/server.yaml`):
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1

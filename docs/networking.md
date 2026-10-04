@@ -1,19 +1,19 @@
 # Networking
 
-One node, one IP, many cluster hostnames. This document describes how names reach the node, how the node routes them, how certificates are issued, and the single exception to host-based routing (LiveKit media). Five user-facing applications are self-hosted through this cluster: ChessKernel, PixelHub, Mixtape, Sotto, and 9Router. Supporting hosts expose infrastructure services such as ArgoCD and Grafana. HomeLab Landing is externally hosted and outside this cluster route map. For the decisions behind this design, see [ADR-005](adr/005-wildcard-dns-traefik-sni-routing.md) and [ADR-004](adr/004-cert-manager-http01-vs-dns01.md).
+One node, one IP, many cluster hostnames. This document describes how names reach the node, how the node routes them, how certificates are issued, and the single exception to host-based routing (LiveKit media). Four user-facing applications are self-hosted through this cluster: PixelHub, Mixtape, Sotto, and 9Router. Supporting hosts expose infrastructure services such as ArgoCD and Grafana. HomeLab Landing is externally hosted and outside this cluster route map. For the decisions behind this design, see [ADR-005](adr/005-wildcard-dns-traefik-sni-routing.md) and [ADR-004](adr/004-cert-manager-http01-vs-dns01.md).
 
 ## Wildcard DNS
 
-A single wildcard A record, `*.lab.csharpkit.com`, points at the node IP. Any subdomain under `lab.csharpkit.com` resolves to the node with no further DNS change, so adding a service never touches DNS. ChessKernel's apex and `www` point at the same node with their own records.
+A single wildcard A record, `*.lab.csharpkit.com`, points at the node IP. Any subdomain under `lab.csharpkit.com` resolves to the node with no further DNS change, so adding a service never touches DNS.
 
 ### Creating the DNS records
 
-The platform needs exactly one record to serve any number of `.lab` hosts, plus one apex record (and usually `www`) per custom domain.
+The platform needs exactly one record to serve any number of `.lab` hosts, plus an apex record (and usually `www`) for each custom domain an app uses.
 
 | Record | Type | Value | Where to create it |
 |--------|------|-------|--------------------|
 | `*.lab` | A | node public IP | the `csharpkit.com` DNS provider |
-| a custom apex, e.g. `chesskernel.com` | A | node public IP | that domain's DNS provider |
+| a custom apex, e.g. `yourdomain.com` | A | node public IP | that domain's DNS provider |
 | `www` on the custom domain | A (or CNAME to the apex) | node public IP | same provider |
 
 The apex of `csharpkit.com`, its `www`, and externally hosted sites such as HomeLab Landing stay outside this cluster; only the `*.lab` label is delegated to the node, so the wildcard never collides with those public sites. Adding a `.lab` service needs no new record because the wildcard already covers it. A custom domain needs its own apex record because a wildcard for one registrable domain does not cover a different one. Keep the TTL low (300s) while setting up, and confirm resolution with `dig +short <host>` before expecting a certificate: cert-manager can only pass HTTP-01 once the host resolves to the node.
@@ -24,9 +24,8 @@ Traefik ships with k3s and is the single ingress controller. Every service decla
 
 ```mermaid
 flowchart LR
-    DNS["*.lab.csharpkit.com<br/>chesskernel.com"] --> Node["node :80 / :443"]
+    DNS["*.lab.csharpkit.com"] --> Node["node :80 / :443"]
     Node --> Traefik["Traefik<br/>TLS termination + host routing"]
-    Traefik -->|chesskernel.com, chesskernel.lab| CK["chesskernel client"]
     Traefik -->|pixelhub.lab| PH["pixelhub client"]
     Traefik -->|mixtape.lab| MIX["mixtape"]
     Traefik -->|sotto.lab| SOT["sotto"]
@@ -44,9 +43,6 @@ flowchart LR
 
 | Host | Backend | Notes |
 |------|---------|-------|
-| `chesskernel.com` | ChessKernel client | Production domain; own Ingress + cert (`chesskernel-own-tls`) |
-| `www.chesskernel.com` | ChessKernel client | Shares the production Ingress |
-| `chesskernel.lab.csharpkit.com` | ChessKernel client | Separate Ingress + cert (`chesskernel-lab-tls`) |
 | `pixelhub.lab.csharpkit.com` | PixelHub client | `pixelhub-tls` |
 | `argo.lab.csharpkit.com` | ArgoCD server | TLS at Traefik; ArgoCD runs insecure internally |
 | `grafana.lab.csharpkit.com` | Grafana | Ingress defined in the monitoring chart values |
@@ -55,13 +51,9 @@ flowchart LR
 | `sotto.lab.csharpkit.com` | Sotto client and API | `sotto-tls`; app-level bcrypt login; bilingual English/Portuguese transcription and AI summaries through 9Router |
 | `9router.lab.csharpkit.com` | Authenticated 9Router AI gateway | `9router-tls`; API key required; OAuth tokens and issued API keys stored on its PVC |
 
-### Why ChessKernel has two Ingress objects
-
-Traefik drops an Ingress's entire TLS configuration if any referenced certificate Secret is missing. Before the `*.lab.csharpkit.com` wildcard existed, the lab host could not pass HTTP-01, so its certificate could not issue. Splitting the production domain and the lab host into two separate Ingress objects means a pending lab certificate never takes down TLS for `chesskernel.com`. This is the general pattern to follow whenever one host resolves and another does not yet.
-
 ## Adding a custom domain to an app
 
-To serve an app on its own domain, the way ChessKernel runs on `chesskernel.com`:
+To serve an app on its own domain:
 
 1. **DNS.** Create an apex `A` record for the domain pointing at the node IP, and usually a `www` record too (see the records table above). Confirm both resolve with `dig +short yourdomain.com` and `dig +short www.yourdomain.com`.
 2. **Ingress.** Add the hostnames to the app. If the app also serves a host that might not resolve yet, put the custom domain in its own `Ingress` so a pending certificate on the other host cannot drop its TLS (the two-Ingress pattern above). Otherwise add the host rules and a matching `tls:` entry to the existing Ingress:
@@ -85,7 +77,7 @@ To serve an app on its own domain, the way ChessKernel runs on `chesskernel.com`
          secretName: <app>-own-tls
    ```
 
-3. **App config.** Update any origin or CORS setting to the new domain. ChessKernel sets `CLIENT_ORIGIN: https://chesskernel.com` in `apps/chesskernel/server.yaml`.
+3. **App config.** Update any origin or CORS setting to the new domain.
 4. **Push.** ArgoCD applies it and cert-manager issues the certificate over HTTP-01 as soon as the domain resolves. Watch it: `kubectl -n <app> get certificate`. The host is live once the certificate is `Ready`.
 
 No node access is needed. It is all git plus the DNS records.

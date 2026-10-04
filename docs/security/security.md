@@ -47,7 +47,6 @@ Every public host is served over HTTPS with a Let's Encrypt certificate issued a
 Only what has an `Ingress` with a `host:` rule is reachable from the internet. Everything else is cluster-internal and reachable only from inside the pod network.
 
 - **Application `/metrics`** are served on the servers' cluster-internal Service ports and scraped by Prometheus through `ServiceMonitor`s. They are deliberately excluded from the public ingress: the client nginx proxies only the API paths (`/api`, `/socket.io`, `/colyseus`), never `/metrics`. LiveKit's Prometheus endpoint (6789) is cluster-internal the same way.
-- **Databases and caches** (PostgreSQL, Redis) have `ClusterIP` Services with no Ingress and are never public.
 - **LiveKit media ports** (7882/udp, 7881/tcp) are the documented exception that must be reachable from clients because WebRTC media cannot traverse Traefik (see the [networking doc](../networking.md)). Signaling still goes through the TLS ingress.
 
 ## Sotto: app-level login
@@ -63,7 +62,7 @@ Sotto's public ingress was originally gated with Traefik `BasicAuth`, which put 
 
 ## Namespace isolation and Prune=false
 
-Each workload lives in its own namespace (`chesskernel`, `pixelhub`, `monitoring`, `cert-manager`, `argocd`), which bounds blast radius and scopes RBAC. Every managed namespace carries `argocd.argoproj.io/sync-options: Prune=false` (`platform/config/namespaces.yaml`), so ArgoCD's automated prune can never delete a live namespace and everything in it, even if its declaration is removed. This is a deliberate guardrail against a destructive one-line change (see [ADR-002](../adr/002-argocd-app-of-apps-sync-waves.md)).
+Each workload lives in its own namespace (`pixelhub`, `mixtape`, `sotto`, `9router`, `monitoring`, `cert-manager`, `argocd`), which bounds blast radius and scopes RBAC. Every managed namespace carries `argocd.argoproj.io/sync-options: Prune=false` (`platform/config/namespaces.yaml`), so ArgoCD's automated prune can never delete a live namespace and everything in it, even if its declaration is removed. This is a deliberate guardrail against a destructive one-line change (see [ADR-002](../adr/002-argocd-app-of-apps-sync-waves.md)).
 
 ## Host hardening already applied
 
@@ -75,7 +74,6 @@ The following was applied directly on the VPS on 2026-07-23:
 
 ## Pending items
 
-- **Provision Tencent COS backup credentials.** Create a bucket-scoped Secret ID and Secret Key, then seal them as `cos-backup-credentials` before enabling the backup CronJob.
 - **Rotate the old VPS root password.** It was exposed before SSH went key-only. Even with password login disabled, rotate it.
 
 ## Single-node tradeoffs (accepted)
