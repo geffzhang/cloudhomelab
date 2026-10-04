@@ -11,7 +11,9 @@
   git clone https://github.com/geffzhang/cloudhomelab && cd cloudhomelab
    sudo bash bootstrap/install.sh
    ```
-   初始化脚本还会自动加固主机，且可安全重复运行：配置 2 GB 交换空间、
+  首次安装 k3s 时，脚本会使用 Rancher 中国镜像获取安装脚本、版本信息和安装文件；
+  如果服务器已安装 k3s，则保持原有逻辑并跳过安装。
+  初始化脚本还会自动加固主机，且可安全重复运行：配置 2 GB 交换空间、
    fail2ban、限制 node-exporter（9100 端口）的防火墙规则，以及仅允许 SSH
    密钥登录（只有在 `authorized_keys` 中存在公钥时才会启用，避免新服务器
    被锁在外面；添加密钥后重新运行脚本即可启用）。

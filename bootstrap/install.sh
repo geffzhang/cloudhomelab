@@ -77,7 +77,7 @@ harden_host
 # ── 1. k3s (includes Traefik ingress, CoreDNS, local-path storage) ──────────
 if ! command -v k3s >/dev/null 2>&1; then
   log "Installing k3s..."
-  curl -sfL https://get.k3s.io | sh -
+  curl -sfL https://rancher-mirror.rancher.cn/k3s/k3s-install.sh | INSTALL_K3S_MIRROR=cn sh -
 else
   log "k3s already installed, skipping."
 fi
