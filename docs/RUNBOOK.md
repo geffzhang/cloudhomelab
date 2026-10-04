@@ -116,6 +116,7 @@ kubectl -n 9router logs deploy/9router --since=1h | \
 | 现象 | 检查方法 |
 |---|---|
 | ArgoCD 中应用显示异常 | 执行 `kubectl -n <ns> describe pod ...`；常见原因是缺少 Sealed Secret |
+| `applicationsets.argoproj.io` 报 `metadata.annotations: Too long` | 拉取包含修复的代码后重新运行 `sudo bash bootstrap/install.sh`；脚本使用 Server-Side Apply。不要删除或重建 CRD |
 | 未签发 TLS 证书 | 执行 `kubectl describe certificate -A`；使用 HTTP-01 验证时，DNS 必须已解析到服务器 |
 | 节点资源压力过高 | 在 Grafana 的 Homelab Overview 仪表板查看 VPS 区域；CPU 限流会优先在此处显示 |
 | ArgoCD 界面响应较慢 | 所有服务共用 1 vCPU，同步期间变慢属于正常现象 |

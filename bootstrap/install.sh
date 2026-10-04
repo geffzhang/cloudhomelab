@@ -89,8 +89,9 @@ until $KUBECTL wait --for=condition=Ready node --all --timeout=300s >/dev/null 2
 # ── 2. ArgoCD ───────────────────────────────────────────────────────────────
 log "Installing/upgrading ArgoCD (${ARGOCD_VERSION})..."
 $KUBECTL get ns argocd >/dev/null 2>&1 || $KUBECTL create namespace argocd
-# apply is idempotent: fresh install and upgrade are the same operation
-$KUBECTL apply -n argocd -f \
+# Server-side apply avoids the ApplicationSet CRD's client-side annotation limit.
+# Force conflicts to migrate fields owned by earlier client-side applies.
+$KUBECTL apply --server-side --force-conflicts -n argocd -f \
   "https://raw.githubusercontent.com/argoproj/argo-cd/${ARGOCD_VERSION}/manifests/install.yaml"
 
 # Trim for 1 vCPU / 4GB: no dex (no SSO needed), no notifications controller.
