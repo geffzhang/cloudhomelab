@@ -72,7 +72,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
     homelab.csharpkit.com/description: >-
-      GitOps control plane: ArgoCD watches github.com/geffzhang/homelab and
+      GitOps control plane: ArgoCD watches github.com/geffzhang/cloudhomelab and
       keeps this cluster matching it. UI at argo.lab.csharpkit.com.
   labels:
     app.kubernetes.io/part-of: homelab

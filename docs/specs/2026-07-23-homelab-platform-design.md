@@ -34,7 +34,7 @@ platform components carry requests/limits.
 
 ## Repos
 
-- `geffzhang/homelab`, this repo: bootstrap, platform, apps (source of truth)
+- `geffzhang/cloudhomelab`, this repo: bootstrap, platform, apps (source of truth)
 - `mateuseap/chesskernel`, app code + CI → GHCR
 - `mateuseap/pixelhub`, Gather.town-style world (own design cycle; v1 = 2D
   world + proximity text/audio via Phaser + Colyseus + LiveKit, audio-only

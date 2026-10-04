@@ -16,7 +16,7 @@ spec:
       helm:
         valueFiles:
           - $values/platform/monitoring/values.yaml
-    - repoURL: https://github.com/geffzhang/homelab
+    - repoURL: https://github.com/geffzhang/cloudhomelab
       targetRevision: main
       ref: values
   destination:

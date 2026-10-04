@@ -18,7 +18,7 @@ spec:
         releaseName: loki
         valueFiles:
           - $values/platform/logging/loki-values.yaml
-    - repoURL: https://github.com/geffzhang/homelab
+    - repoURL: https://github.com/geffzhang/cloudhomelab
       targetRevision: main
       ref: values
   destination:
@@ -47,7 +47,7 @@ spec:
         releaseName: alloy
         valueFiles:
           - $values/platform/logging/alloy-values.yaml
-    - repoURL: https://github.com/geffzhang/homelab
+    - repoURL: https://github.com/geffzhang/cloudhomelab
       targetRevision: main
       ref: values
   destination:

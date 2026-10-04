@@ -9,7 +9,7 @@ Operational procedures. Everything here assumes SSH access to the VPS and
    Also point chesskernel's own domain at it.
 2. **Bootstrap**:
    ```bash
-  git clone https://github.com/geffzhang/homelab && cd homelab
+  git clone https://github.com/geffzhang/cloudhomelab && cd cloudhomelab
    sudo bash bootstrap/install.sh
    ```
    The bootstrap also hardens the host automatically and idempotently: 2 GB

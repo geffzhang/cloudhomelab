@@ -5,9 +5,9 @@
 **One VPS, declared in git. Everything else is a `git push`.**  
 GitOps · k3s · ArgoCD · Reproducible in ~30 minutes
 
-[![license](https://badgen.net/github/license/geffzhang/homelab?color=5ba3b0)](LICENSE)
-[![stars](https://badgen.net/github/stars/geffzhang/homelab)](https://github.com/geffzhang/homelab/stargazers)
-[![visitors](https://visitor-badge.laobi.icu/badge?page_id=geffzhang.homelab)](https://github.com/geffzhang/homelab)
+[![license](https://badgen.net/github/license/geffzhang/cloudhomelab?color=5ba3b0)](LICENSE)
+[![stars](https://badgen.net/github/stars/geffzhang/cloudhomelab)](https://github.com/geffzhang/cloudhomelab/stargazers)
+[![visitors](https://visitor-badge.laobi.icu/badge?page_id=geffzhang.cloudhomelab)](https://github.com/geffzhang/cloudhomelab)
 
 </div>
 
@@ -52,7 +52,7 @@ The externally hosted **[HomeLab Landing](https://github.com/mateuseap/homelab-l
 
 ```mermaid
 flowchart TB
-    gh["GitHub: geffzhang/homelab<br/>(source of truth)"]
+    gh["GitHub: geffzhang/cloudhomelab<br/>(source of truth)"]
     subgraph node["k3s node (1 vCPU / 4 GB VPS)"]
         argo["ArgoCD<br/>watches the repo, applies manifests"]
         traefik["Traefik ingress<br/>TLS termination, host routing"]
@@ -140,7 +140,7 @@ flowchart LR
 ## Quick Start
 
 ```bash
-git clone https://github.com/geffzhang/homelab && cd homelab
+git clone https://github.com/geffzhang/cloudhomelab && cd cloudhomelab
 sudo bash bootstrap/install.sh
 ```
 

@@ -5,7 +5,7 @@
 # Usage: sudo bash install.sh
 set -euo pipefail
 
-REPO_URL="https://github.com/geffzhang/homelab"
+REPO_URL="https://github.com/geffzhang/cloudhomelab"
 # "stable" tracks the latest stable release; older pins hit diff-schema bugs
 # against current Kubernetes (e.g. .status.terminatingReplicas on 2.12).
 ARGOCD_VERSION="stable"

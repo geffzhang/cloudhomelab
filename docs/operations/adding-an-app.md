@@ -34,7 +34,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/geffzhang/homelab
+    repoURL: https://github.com/geffzhang/cloudhomelab
     targetRevision: main
     path: apps/<name>
   destination:

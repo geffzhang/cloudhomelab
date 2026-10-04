@@ -72,7 +72,7 @@ The control plane and the kubelet run inside a single k3s process. Traefik, Core
 
 ```mermaid
 graph LR
-    Git["git repo<br/>github.com/geffzhang/homelab"]
+    Git["git repo<br/>github.com/geffzhang/cloudhomelab"]
     Root["root<br/>(app-of-apps)"]
 
     Git --> Root

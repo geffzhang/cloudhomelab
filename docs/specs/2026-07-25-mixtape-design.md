@@ -38,7 +38,7 @@ secret to seal.
 
 ## Repos
 
-- `geffzhang/homelab`: `apps/mixtape/`, `argocd/app-mixtape.yaml`, docs and
+- `geffzhang/cloudhomelab`: `apps/mixtape/`, `argocd/app-mixtape.yaml`, docs and
   landing updates (this repo)
 - `mateuseap/mixtape`: app code + CI → GHCR, own README/CONTRIBUTING/CI
   following the ChessKernel/PixelHub pattern, develop → main, tagged releases
