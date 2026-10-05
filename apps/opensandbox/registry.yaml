@@ -1,0 +1,115 @@
+---
+# In-cluster OCI registry for OpenSandbox sandbox checkpoint images.
+#
+# The controller pushes snapshot images here when a sandbox is paused and
+# pulls them back when resumed. The default registry hostname the chart bakes
+# into the controller is docker-registry.opensandbox-system.svc:5000, matching
+# the Service below. The registry runs without auth - it is ClusterIP-only and
+# only reachable from inside the cluster, which is sufficient for the
+# snapshot pipeline. Reachable from the host only by accident: the wildcard
+# *.lab.csharpkit.com DNS does not resolve it and no Service of type
+# NodePort/LoadBalancer is exposed.
+#
+# Sized for a few suspended sandboxes; bump the PVC if pause/resume use grows.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-registry-data
+  namespace: opensandbox-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry
+  namespace: opensandbox-system
+  labels:
+    app.kubernetes.io/name: docker-registry
+    app.kubernetes.io/part-of: opensandbox
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate  # PVC is RWO; rolling deploys cannot mount/unmount cleanly
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: docker-registry
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: docker-registry
+        app.kubernetes.io/part-of: opensandbox
+    spec:
+      containers:
+        - name: registry
+          image: registry:2
+          ports:
+          - name: registry
+            containerPort: 5000
+            protocol: TCP
+          env:
+          # Stable per-Pod scratch under the PVC - keeps the registry content
+          # inside the mounted volume and survives restarts.
+          - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+            value: /var/lib/registry
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: registry
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: registry
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+          - name: data
+            mountPath: /var/lib/registry
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: docker-registry-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-registry
+  namespace: opensandbox-system
+  labels:
+    app.kubernetes.io/name: docker-registry
+    app.kubernetes.io/part-of: opensandbox
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: docker-registry
+  ports:
+  - name: registry
+    port: 5000
+    targetPort: registry
+    protocol: TCP

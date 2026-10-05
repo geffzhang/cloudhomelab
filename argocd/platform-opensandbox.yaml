@@ -1,0 +1,33 @@
+---
+# OpenSandbox 1.1 platform application. Sync-wave 0 alongside cert-manager and
+# sealed-secrets - every other app in the cluster already depends on those two,
+# so OpenSandbox sits in the same wave without violating the documented
+# ordering. (cert-manager → sealed-secrets → platform-config → monitoring →
+# apps, per docs/architecture/overview.md.)
+#
+# Source is the rendered YAML under apps/opensandbox/ rather than the upstream
+# Helm chart: OpenSandbox ships versioned chart sources, not standalone .tgz
+# packages, and the GitOps docs explicitly recommend `helm template` for this
+# reason. Re-render against a newer release-X.Y.Z tag when upgrading; see
+# docs/operations/adding-opensandbox.md.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: opensandbox
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/geffzhang/cloudhomelab
+    targetRevision: main
+    path: apps/opensandbox
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: opensandbox-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
