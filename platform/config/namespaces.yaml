@@ -52,3 +52,29 @@ metadata:
       issued API keys on its PVC. Public at 9router.lab.csharpkit.com.
   labels:
     app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opensandbox-system
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      OpenSandbox 1.1 control plane: controller, lifecycle API server,
+      ingress gateway, and in-cluster OCI registry used for sandbox
+      pause/resume snapshots. Public API at sandbox.lab.csharpkit.com.
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: opensandbox
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      OpenSandbox 1.1 sandbox workload namespace. Pool and BatchSandbox
+      custom resources land here; sandbox Pods run in this namespace by
+      default (matches the chart's [kubernetes].namespace default).
+  labels:
+    app.kubernetes.io/part-of: homelab

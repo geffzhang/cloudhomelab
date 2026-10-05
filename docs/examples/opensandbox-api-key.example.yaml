@@ -1,0 +1,31 @@
+# TEMPLATE, never commit a filled-in copy of this file (see .gitignore).
+# Lives in docs/examples/ (NOT apps/) because ArgoCD applies every YAML under
+# apps/, so a template there would be deployed literally and fight the
+# sealed secret.
+#
+# The OpenSandbox lifecycle server refuses to start without an API key in a
+# non-interactive container. Generate one locally, seal it with kubeseal, and
+# commit the sealed copy to apps/opensandbox/sealed-secret-api-key.yaml.
+#
+# Workflow (run from a machine with cluster access, see
+# docs/operations/adding-opensandbox.md#sealing-the-api-key):
+#   1. Generate a key:
+#        KEY=$(openssl rand -base64 32)
+#   2. Render the Secret from this template, then keep going.
+#   3. Seal it:
+#        kubectl create secret generic opensandbox-api-key \
+#          --namespace opensandbox-system \
+#          --from-literal=api-key="$KEY" \
+#          --dry-run=client -o yaml \
+#          | kubeseal --controller-namespace kube-system --format yaml \
+#          > apps/opensandbox/sealed-secret-api-key.yaml
+#   4. Commit apps/opensandbox/sealed-secret-api-key.yaml (safe: only the
+#      cluster can decrypt it) and push.
+#   5. shred / unset the KEY variable - never leave it in shell history.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opensandbox-api-key
+  namespace: opensandbox-system
+stringData:
+  api-key: CHANGE-ME

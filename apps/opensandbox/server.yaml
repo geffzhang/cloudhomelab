@@ -1,0 +1,319 @@
+---
+# Source: opensandbox-server/templates/serviceaccount.yaml
+# Copyright 2026 The OpenSandbox Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opensandbox-server
+  namespace: opensandbox-system
+  labels:
+    helm.sh/chart: opensandbox-server-1.1.0
+    app.kubernetes.io/name: opensandbox-server
+    app.kubernetes.io/instance: opensandbox-server
+    app.kubernetes.io/version: "1.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: opensandbox-server
+    app.kubernetes.io/part-of: opensandbox
+---
+# Source: opensandbox-server/templates/configmap.yaml
+# Copyright 2026 The OpenSandbox Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opensandbox-server-config
+  namespace: opensandbox-system
+  labels:
+    helm.sh/chart: opensandbox-server-1.1.0
+    app.kubernetes.io/name: opensandbox-server
+    app.kubernetes.io/instance: opensandbox-server
+    app.kubernetes.io/version: "1.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: opensandbox-server
+    app.kubernetes.io/part-of: opensandbox
+data:
+  config.toml: |
+    [server]
+    host = "0.0.0.0"
+    port = 80
+    api_key = ""
+    
+    [log]
+    level = "INFO"
+    
+    [runtime]
+    type = "kubernetes"
+    execd_image = "sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/execd:release-1.1.0"
+    
+    [kubernetes]
+    kubeconfig_path = ""
+    namespace = "opensandbox"
+    informer_resync_seconds = 300
+    informer_watch_timeout_seconds = 60
+    workload_provider = "batchsandbox"
+    batchsandbox_template_file = "/etc/opensandbox/example.batchsandbox-template.yaml"
+    
+    [egress]
+    image = "sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/egress:release-1.1.0"
+    mode = "dns+nft"
+    
+    
+    [ingress]
+    mode = "gateway"
+    
+    gateway.address = "sandbox.lab.csharpkit.com"
+    gateway.route.mode = "header"
+---
+# Source: opensandbox-server/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: opensandbox-server-role
+  labels:
+    helm.sh/chart: opensandbox-server-1.1.0
+    app.kubernetes.io/name: opensandbox-server
+    app.kubernetes.io/instance: opensandbox-server
+    app.kubernetes.io/version: "1.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: opensandbox-server
+    app.kubernetes.io/part-of: opensandbox
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/status", "pods/log", "events", "services", "configmaps"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create", "delete", "get"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["create", "delete", "get", "list", "patch"]
+  - apiGroups: ["node.k8s.io"]
+    resources: ["runtimeclasses"]
+    verbs: ["get", "list"]
+  - apiGroups: ["sandbox.opensandbox.io"]
+    resources: ["batchsandboxes", "batchsandboxes/status", "batchsandboxes/finalizers"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["sandbox.opensandbox.io"]
+    resources: ["pools", "pools/status", "pools/finalizers"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["sandbox.opensandbox.io"]
+    resources: ["sandboxsnapshots", "sandboxsnapshots/status", "sandboxsnapshots/finalizers"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  # Fsb: Sandbox CR reads power Get/List; SandboxTemplate
+  # CRUD powers the /templates management API; SandboxSnapshot
+  # watches power fsb snapshot status convergence.
+  - apiGroups: ["sandbox.fast.io"]
+    resources: ["sandboxes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["sandbox.fast.io"]
+    resources: ["sandboxtemplates"]
+    verbs: ["create", "delete", "get", "list", "watch"]
+  - apiGroups: ["sandbox.fast.io"]
+    resources: ["sandboxesnapshots"]
+    verbs: ["get", "list", "watch"]
+---
+# Source: opensandbox-server/templates/rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: opensandbox-server-rolebinding
+  labels:
+    helm.sh/chart: opensandbox-server-1.1.0
+    app.kubernetes.io/name: opensandbox-server
+    app.kubernetes.io/instance: opensandbox-server
+    app.kubernetes.io/version: "1.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: opensandbox-server
+    app.kubernetes.io/part-of: opensandbox
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: opensandbox-server-role
+subjects:
+  - kind: ServiceAccount
+    name: opensandbox-server
+    namespace: opensandbox-system
+---
+# Source: opensandbox-server/templates/service.yaml
+# Copyright 2026 The OpenSandbox Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensandbox-server
+  namespace: opensandbox-system
+  labels:
+    helm.sh/chart: opensandbox-server-1.1.0
+    app.kubernetes.io/name: opensandbox-server
+    app.kubernetes.io/instance: opensandbox-server
+    app.kubernetes.io/version: "1.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: opensandbox-server
+    app.kubernetes.io/part-of: opensandbox
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: opensandbox-server
+    app.kubernetes.io/instance: opensandbox-server
+---
+# Source: opensandbox-server/templates/deployment.yaml
+# Copyright 2026 The OpenSandbox Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opensandbox-server
+  namespace: opensandbox-system
+  labels:
+    helm.sh/chart: opensandbox-server-1.1.0
+    app.kubernetes.io/name: opensandbox-server
+    app.kubernetes.io/instance: opensandbox-server
+    app.kubernetes.io/version: "1.1.0"
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/component: opensandbox-server
+    app.kubernetes.io/part-of: opensandbox
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opensandbox-server
+      app.kubernetes.io/instance: opensandbox-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: opensandbox-server
+        app.kubernetes.io/instance: opensandbox-server
+        app.kubernetes.io/part-of: opensandbox
+      annotations:
+        # The server parses config.toml once at startup, so an in-place update
+        # of the ConfigMap leaves the running pod on the previous configuration.
+        # Hashing the rendered TOML rolls the Deployment whenever it changes.
+        checksum/config: 306304832ae365b5ee9ac802b98d46d9ccd725e81eceac84a1c95ba0cd8f2040
+    spec:
+      serviceAccountName: opensandbox-server
+      containers:
+        - name: main
+          image: sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/server:release-1.1.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config"
+            - "/etc/opensandbox/config.toml"
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          env:
+            - name: SANDBOX_CONFIG_PATH
+              value: "/etc/opensandbox/config.toml"
+            - name: OPENSANDBOX_SERVER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: api-key
+                  name: opensandbox-api-key
+          volumeMounts:
+            - name: config
+              mountPath: /etc/opensandbox/config.toml
+              subPath: config.toml
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 192Mi
+      volumes:
+        - name: config
+          configMap:
+            name: opensandbox-server-config
+---
+# Source: opensandbox-server/templates/rbac.yaml
+# Copyright 2026 The OpenSandbox Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Operational RBAC for the server: pods/pvcs/secrets management, CR access,
+# and the binding to the server ServiceAccount.

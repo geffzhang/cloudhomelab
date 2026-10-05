@@ -1,6 +1,6 @@
 # 平台架构概览
 
-本家庭实验室运行在一台腾讯云轻量服务器 上（2 vCPU、4 GB 内存、114.132.200.41），使用单节点 k3s；集群配置全部声明在此 Git 仓库中。ArgoCD 持续监视仓库，并使集群状态与仓库配置保持一致。其上自托管一个面向用户的应用：9Router。ArgoCD、Traefik、cert-manager、sealed-secrets、Prometheus、Grafana 和各类 exporter 提供平台基础设施支持。
+本家庭实验室运行在一台腾讯云轻量服务器 上（2 vCPU、4 GB 内存、114.132.200.41），使用单节点 k3s；集群配置全部声明在此 Git 仓库中。ArgoCD 持续监视仓库，并使集群状态与仓库配置保持一致。其上自托管一个面向用户的应用：9Router。ArgoCD、Traefik、cert-manager、sealed-secrets、OpenSandbox、Prometheus、Grafana 和各类 exporter 提供平台基础设施支持。
 
 有关本架构设计决策，请参阅 [ADR](../adr/)；原始设计说明见 [docs/specs](../specs/)；分步运维流程见[运维手册](../RUNBOOK.md)。
 
@@ -20,6 +20,9 @@ graph TB
         subgraph ks["命名空间：kube-system"]
             Sealed["sealed-secrets<br/>（控制器）"]
         end
+        subgraph os["命名空间：opensandbox-system"]
+            OSCtl["OpenSandbox<br/>controller / server / gateway<br/>+ 集群内快照 registry"]
+        end
         subgraph mon["命名空间：monitoring"]
             Prom["Prometheus"]
             Graf["Grafana"]
@@ -33,6 +36,7 @@ graph TB
 
     ArgoCD -. 持续协调 .-> router
     ArgoCD -. 持续协调 .-> mon
+    ArgoCD -. 持续协调 .-> os
     CertMgr -. 签发证书 .-> Traefik
     Prom -. 抓取指标 .-> KSM
 ```
@@ -53,6 +57,7 @@ graph LR
     subgraph w0["波次 0"]
         CM["cert-manager"]
         SS["sealed-secrets"]
+        OS["opensandbox"]
     end
     subgraph w1["波次 1"]
         PC["platform-config<br/>（ClusterIssuer、ArgoCD Ingress）"]
@@ -65,7 +70,7 @@ graph LR
     Root --> w0 --> w1 --> w2
 ```
 
-- **波次 0**：cert-manager（CRD）和 sealed-secrets（解密密钥）。其余组件都依赖它们。
+- **波次 0**：cert-manager（CRD）、sealed-secrets（解密密钥）和 OpenSandbox 1.1（沙箱控制平面；同其他 CRD-based 组件一样不依赖应用层资源，参见 [ADR-007](../adr/007-opensandbox-platform.md)）。其余组件都依赖 cert-manager/sealed-secrets。
 - **波次 1**：platform-config（`letsencrypt-prod` ClusterIssuer 和 ArgoCD 界面的 Ingress）以及 monitoring。二者都依赖波次 0 中创建的 CRD。
 - **波次 2**：平台就绪后部署各应用。
 
@@ -84,6 +89,7 @@ flowchart LR
     Traefik -- "9router.lab" --> R9C["9router"]
     Traefik -- "argo.lab" --> Argo["argocd-server"]
     Traefik -- "grafana.lab" --> Graf["grafana"]
+    Traefik -- "sandbox.lab" --> Sandbox["opensandbox-server"]
 ```
 
 完整域名列表请参阅[网络文档](../networking.md)。
@@ -118,6 +124,8 @@ sequenceDiagram
 | `kube-system` | k3s 系统组件和 sealed-secrets 控制器 |
 | `monitoring` | Prometheus、Grafana、exporter（`grafana.lab.csharpkit.com`） |
 | `9router` | 需认证的自托管 AI 网关（Deployment + PVC）；在 PVC 上保存订阅 OAuth 令牌和签发的 API 密钥 |
+| `opensandbox-system` | OpenSandbox 1.1 控制平面（controller、lifecycle server、ingress gateway）+ 集群内快照 registry；公开 API：`sandbox.lab.csharpkit.com` |
+| `opensandbox` | OpenSandbox 1.1 沙箱工作负载命名空间（Pool、BatchSandbox 及其 Pod）；匹配 chart 默认 `[kubernetes].namespace` |
 
 每个应用和平台命名空间都带有 `homelab.csharpkit.com/description` 注解以及 `argocd.argoproj.io/sync-options: Prune=false`，因此从声明文件中移除命名空间定义不会删除正在运行的命名空间及其数据（`platform/config/namespaces.yaml`）。
 
