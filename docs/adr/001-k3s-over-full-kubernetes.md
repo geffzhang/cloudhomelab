@@ -1,30 +1,29 @@
-# ADR-001: k3s over Full or Managed Kubernetes
+# ADR-001：选择 k3s，而非完整或托管 Kubernetes
 
-**Status:** Accepted  
-**Date:** 2026-07-23
+**状态：** 已接受 · **日期：** 2026-07-23
 
-## Context
+## 背景
 
-The platform runs on a single VPS with 1 vCPU and 4 GB of RAM (179.197.71.43). Kubernetes is an explicit goal of the project: it is a learning and portfolio exercise, not only a deployment mechanism. The question is which Kubernetes distribution fits a node that small.
+平台运行在一台腾讯云轻量服务器上，配置为 2 个 vCPU 和 4 GB 内存（114.132.200.41）。使用 Kubernetes 是本项目的明确目标：它既是学习和作品集展示的实践，也是一种部署机制。需要决定的是，哪种 Kubernetes 发行版适合如此小型的节点。
 
-Three options were considered:
+我们考虑了三种方案：
 
-- **Full upstream Kubernetes (kubeadm).** Separate etcd, kube-apiserver, controller-manager, scheduler, and a CNI to install and maintain. The control plane alone wants more than 2 GB and multiple cores before any workload runs.
-- **Managed Kubernetes (EKS/GKE/AKS or a managed control plane).** Removes the control-plane burden but adds a monthly bill, moves the cluster off a machine I fully own, and hides the internals I want to learn.
-- **k3s.** A CNCF-graduated, fully conformant Kubernetes distribution packaged as a single binary. It replaces etcd with SQLite by default, runs the control plane and kubelet in one process, and bundles Traefik, CoreDNS, local-path storage, and a service load balancer.
+- **完整的上游 Kubernetes（kubeadm）。** 需要分别安装和维护 etcd、kube-apiserver、controller-manager、scheduler 以及 CNI。在运行任何工作负载之前，控制平面本身就需要超过 2 GB 内存和多个 CPU 核心。
+- **托管 Kubernetes（EKS/GKE/AKS 或托管控制平面）。** 虽然免去了管理控制平面的负担，但会产生每月费用、使集群脱离我完全拥有的机器，也无法让我深入了解希望学习的内部机制。
+- **k3s。** 这是由 CNCF 毕业、完全符合 Kubernetes 标准的发行版，并打包为单个二进制文件。它默认使用 SQLite 替代 etcd，在一个进程中运行控制平面和 kubelet，并内置 Traefik、CoreDNS、本地路径存储和服务负载均衡器。
 
-## Decision
+## 决策
 
-Use **k3s**, single node, with its bundled components.
+使用单节点 **k3s**，并采用其内置组件。
 
-- The control plane fits in roughly 600 MB, leaving headroom for ArgoCD, monitoring, and both applications on 4 GB.
-- The API is the same Kubernetes API, so every manifest, ADR, and skill transfers to a full cluster later.
-- Bundled Traefik, CoreDNS, and local-path storage remove three install steps and three things to maintain.
-- Because the datastore is SQLite rather than etcd, the monitoring stack disables the `kubeEtcd` scrape target (see `platform/monitoring/values.yaml`).
+- 控制平面约占用 600 MB，因此在 4 GB 内存的节点上，仍有余量运行 ArgoCD、监控系统和两个应用。
+- 其 API 与 Kubernetes API 相同，因此后续迁移到完整集群时，所有清单、ADR 和技能经验都可以沿用。
+- 内置的 Traefik、CoreDNS 和本地路径存储省去了三个安装步骤，也减少了三项需要维护的组件。
+- 由于数据存储使用 SQLite 而非 etcd，监控栈会禁用 `kubeEtcd` 抓取目标（参见 `platform/monitoring/values.yaml`）。
 
-## Consequences
+## 后果
 
-- Single node means no high availability. This is accepted; HA on one VPS is impossible by definition (see ADR-006 for how data survives node loss).
-- The node IP equals the public IP on a single-NIC VPS, so kubelet (10250) and the API (6443) are reachable from the internet. They are authenticated, but a provider-level firewall is the recommended defense in depth (see the security doc).
-- Control-plane components run inside the single k3s process and do not expose separate scrape endpoints, so `kubeControllerManager`, `kubeScheduler`, and `kubeProxy` monitoring targets are turned off to avoid noise.
-- Storage is node-local (local-path). A rebuilt node starts empty and is repopulated from git plus the nightly backup, not from a replicated volume.
+- 单节点意味着无法实现高可用。我们接受这一点；按照定义，单台 VPS 无法实现高可用（关于节点丢失后如何保留数据，请参见 ADR-006）。
+- 在只有一个网卡的 VPS 上，节点 IP 与公网 IP 相同，因此 kubelet（10250）和 API（6443）可从互联网访问。它们需要身份验证，但建议再通过云服务商级别的防火墙增加纵深防御（参见安全文档）。
+- 控制平面组件在单个 k3s 进程中运行，不会提供独立的抓取端点，因此关闭 `kubeControllerManager`、`kubeScheduler` 和 `kubeProxy` 监控目标，以避免产生无用告警或指标噪声。
+- 存储位于节点本地（local-path）。重建后的节点初始为空，需要通过 Git 和每晚备份恢复数据，而不是从复制卷恢复。

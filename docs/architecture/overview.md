@@ -1,6 +1,6 @@
 # 平台架构概览
 
-本家庭实验室运行在一台 VPS 上（1 vCPU、4 GB 内存、179.197.71.43），使用单节点 k3s；集群配置全部声明在此 Git 仓库中。ArgoCD 持续监视仓库，并使集群状态与仓库配置保持一致。其上自托管一个面向用户的应用：9Router。ArgoCD、Traefik、cert-manager、sealed-secrets、Prometheus、Grafana 和各类 exporter 提供平台基础设施支持。
+本家庭实验室运行在一台腾讯云轻量服务器 上（2 vCPU、4 GB 内存、114.132.200.41），使用单节点 k3s；集群配置全部声明在此 Git 仓库中。ArgoCD 持续监视仓库，并使集群状态与仓库配置保持一致。其上自托管一个面向用户的应用：9Router。ArgoCD、Traefik、cert-manager、sealed-secrets、Prometheus、Grafana 和各类 exporter 提供平台基础设施支持。
 
 有关本架构设计决策，请参阅 [ADR](../adr/)；原始设计说明见 [docs/specs](../specs/)；分步运维流程见[运维手册](../RUNBOOK.md)。
 
