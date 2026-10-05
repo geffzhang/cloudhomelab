@@ -24,15 +24,13 @@ Hand-configured servers rot: undocumented tweaks pile up, migrations become arch
 
 ## What runs on it
 
-Three user-facing applications are self-hosted on the 1 vCPU / 4 GB VPS:
+One user-facing application is self-hosted on the 1 vCPU / 4 GB VPS:
 
 | App | Purpose |
 |-----|---------|
-| 👾 **[PixelHub](https://github.com/mateuseap/pixelhub)** | Gather-style 2D world with proximity chat and voice |
-| 🎙 **Sotto** | Bilingual English/Portuguese live transcription with AI-generated summaries through 9Router (`sotto.lab.csharpkit.com`) |
 | 🧭 **9Router** | Self-hosted AI gateway providing authenticated rate-limit fallback for Claude Code (`9router.lab.csharpkit.com`) |
 
-Infrastructure services support those apps:
+Infrastructure services support it:
 
 | Service | Purpose |
 |---------|---------|
@@ -40,8 +38,6 @@ Infrastructure services support those apps:
 | 📈 **Grafana + Prometheus** | Metrics, trimmed for a 1 vCPU node (`grafana.lab.csharpkit.com`) |
 | 🔐 **cert-manager** | Automatic Let's Encrypt TLS for every cluster host |
 | 🗝 **sealed-secrets** | Encrypted secrets, safe in public git |
-
-The externally hosted **[HomeLab Landing](https://github.com/mateuseap/homelab-landing)** is the public showcase. It is separate from the three self-hosted applications and cluster infrastructure.
 
 ## Architecture at a glance
 
@@ -55,8 +51,6 @@ flowchart TB
         traefik["Traefik ingress<br/>TLS termination, host routing"]
         cm["cert-manager<br/>Let's Encrypt certificates"]
         seal["sealed-secrets<br/>decrypts SealedSecrets in-cluster"]
-        pixel["PixelHub<br/>client, server, LiveKit"]
-        sotto["Sotto<br/>English/Portuguese transcription, AI summary"]
         router["9Router<br/>authenticated AI gateway, storage"]
         mon["Prometheus + Grafana<br/>curated Homelab Overview dashboard"]
     end
@@ -64,23 +58,15 @@ flowchart TB
     users(("browsers"))
 
     gh -->|poll| argo
-    argo --> pixel
-    argo --> sotto
     argo --> router
     argo --> mon
     argo --> seal
     argo --> cm
     cm --> traefik
     users -->|HTTPS| traefik
-    traefik --> pixel
-    traefik --> sotto
     traefik --> router
     traefik --> argo
     traefik --> mon
-    ghcr -.->|image pulls| pixel
-    ghcr -.->|image pulls| mix
-    ghcr -.->|image pulls| sotto
-    seal -.-> sotto
     seal -.-> router
 ```
 
@@ -89,7 +75,7 @@ flowchart TB
 ```mermaid
 flowchart LR
     dev(["push to main"])
-    subgraph app["first-party app repos<br/>PixelHub, Sotto"]
+    subgraph app["first-party app repos<br/>9Router"]
         ci["GitHub Actions<br/>build image"]
     end
     ghcr[("GHCR")]
@@ -163,14 +149,14 @@ Point `*.lab.yourdomain.com` at the machine, seal your secrets, restore the late
 |-----|------------|
 | [Platform Overview](docs/architecture/overview.md) | Whole platform with diagrams: components, GitOps flow, traffic, TLS, backups |
 | [Architecture Decisions](docs/adr/) | Numbered ADRs: k3s, app-of-apps, sealed-secrets, cert-manager, DNS, backups |
-| [Networking](docs/networking.md) | Wildcard DNS, Traefik SNI routing, hostname map, LiveKit media exception |
+| [Networking](docs/networking.md) | Wildcard DNS, Traefik SNI routing, hostname map |
 | [Security](docs/security/security.md) | Sealed-secrets model, TLS, host hardening, single-node tradeoffs |
 | [Adding an App](docs/operations/adding-an-app.md) | Manifests, Application, sealed secret, ingress, ServiceMonitor, upgrades |
 | [Runbook](docs/RUNBOOK.md) | Bootstrap, operate, deploy, troubleshoot |
 | [Design Spec](docs/specs/) | Original platform design note and rationale |
 | [References](docs/references.md) | Curated study links for every technology in the stack |
 
-Monitoring uses one curated **Homelab Overview** dashboard with five sections (VPS, Kubernetes, PixelHub, Sotto, 9Router). PixelHub exposes cluster-internal application `/metrics` through a ServiceMonitor, LiveKit exposes its cluster-internal native metrics endpoint, and Kubernetes metrics provide resource and health panels for Sotto and 9Router.
+Monitoring uses one curated **Homelab Overview** dashboard with three sections (VPS, Kubernetes, 9Router). Kubernetes metrics provide resource and health panels for 9Router.
 
 ## Contributing
 

@@ -1,6 +1,6 @@
 # Networking
 
-One node, one IP, many cluster hostnames. This document describes how names reach the node, how the node routes them, how certificates are issued, and the single exception to host-based routing (LiveKit media). Three user-facing applications are self-hosted through this cluster: PixelHub, Sotto, and 9Router. Supporting hosts expose infrastructure services such as ArgoCD and Grafana. HomeLab Landing is externally hosted and outside this cluster route map. For the decisions behind this design, see [ADR-005](adr/005-wildcard-dns-traefik-sni-routing.md) and [ADR-004](adr/004-cert-manager-http01-vs-dns01.md).
+One node, one IP, many cluster hostnames. This document describes how names reach the node, how the node routes them, and how certificates are issued. One user-facing application is self-hosted through this cluster: 9Router. Supporting hosts expose infrastructure services such as ArgoCD and Grafana. For the decisions behind this design, see [ADR-005](adr/005-wildcard-dns-traefik-sni-routing.md) and [ADR-004](adr/004-cert-manager-http01-vs-dns01.md).
 
 ## Wildcard DNS
 
@@ -16,7 +16,7 @@ The platform needs exactly one record to serve any number of `.lab` hosts, plus 
 | a custom apex, e.g. `yourdomain.com` | A | node public IP | that domain's DNS provider |
 | `www` on the custom domain | A (or CNAME to the apex) | node public IP | same provider |
 
-The apex of `csharpkit.com`, its `www`, and externally hosted sites such as HomeLab Landing stay outside this cluster; only the `*.lab` label is delegated to the node, so the wildcard never collides with those public sites. Adding a `.lab` service needs no new record because the wildcard already covers it. A custom domain needs its own apex record because a wildcard for one registrable domain does not cover a different one. Keep the TTL low (300s) while setting up, and confirm resolution with `dig +short <host>` before expecting a certificate: cert-manager can only pass HTTP-01 once the host resolves to the node.
+The apex of `csharpkit.com` and its `www` stay outside this cluster; only the `*.lab` label is delegated to the node, so the wildcard never collides with those public sites. Adding a `.lab` service needs no new record because the wildcard already covers it. A custom domain needs its own apex record because a wildcard for one registrable domain does not cover a different one. Keep the TTL low (300s) while setting up, and confirm resolution with `dig +short <host>` before expecting a certificate: cert-manager can only pass HTTP-01 once the host resolves to the node.
 
 ## Traefik ingress and SNI host routing
 
@@ -26,12 +26,9 @@ Traefik ships with k3s and is the single ingress controller. Every service decla
 flowchart LR
     DNS["*.lab.csharpkit.com"] --> Node["node :80 / :443"]
     Node --> Traefik["Traefik<br/>TLS termination + host routing"]
-    Traefik -->|pixelhub.lab| PH["pixelhub client"]
-    Traefik -->|sotto.lab| SOT["sotto"]
     Traefik -->|9router.lab| R9R["9router"]
     Traefik -->|argo.lab| ARG["argocd-server"]
     Traefik -->|grafana.lab| GRAF["grafana"]
-    Traefik -->|livekit.lab| LK["livekit :7880 (wss)"]
 ```
 
 ## 9Router streaming route
@@ -42,11 +39,8 @@ flowchart LR
 
 | Host | Backend | Notes |
 |------|---------|-------|
-| `pixelhub.lab.csharpkit.com` | PixelHub client | `pixelhub-tls` |
 | `argo.lab.csharpkit.com` | ArgoCD server | TLS at Traefik; ArgoCD runs insecure internally |
 | `grafana.lab.csharpkit.com` | Grafana | Ingress defined in the monitoring chart values |
-| `livekit.lab.csharpkit.com` | LiveKit signaling | `wss` signaling only; media bypasses Traefik (see below) |
-| `sotto.lab.csharpkit.com` | Sotto client and API | `sotto-tls`; app-level bcrypt login; bilingual English/Portuguese transcription and AI summaries through 9Router |
 | `9router.lab.csharpkit.com` | Authenticated 9Router AI gateway | `9router-tls`; API key required; OAuth tokens and issued API keys stored on its PVC |
 
 ## Adding a custom domain to an app
@@ -84,17 +78,6 @@ No node access is needed. It is all git plus the DNS records.
 
 A single `ClusterIssuer`, `letsencrypt-prod`, solves ACME HTTP-01 through Traefik (`platform/config/cluster-issuer.yaml`). Each Ingress requests a certificate with the `cert-manager.io/cluster-issuer: letsencrypt-prod` annotation and a `tls:` block naming the Secret to store it in. Certificates are per host and issue on first request once the host resolves; the wildcard record covers resolution, not certificates. No DNS provider token is used. See [ADR-004](adr/004-cert-manager-http01-vs-dns01.md).
 
-## The LiveKit media exception
+## Node firewall
 
-Traefik proxies HTTP, HTTPS, and WebSocket by host, but it cannot proxy arbitrary UDP. LiveKit's WebRTC media therefore does not go through the ingress. Only the signaling channel (`wss` on `livekit.lab.csharpkit.com`, port 7880) uses Traefik; media uses node `hostPort`s directly (`apps/pixelhub/livekit.yaml`):
-
-| Port | Protocol | Purpose | Path |
-|------|----------|---------|------|
-| 7880 | TCP (wss) | Signaling | Through Traefik ingress (`livekit.lab.csharpkit.com`) |
-| 7882 | UDP | WebRTC media (single mux port) | `hostPort` directly on the node |
-| 7881 | TCP | WebRTC media TCP fallback | `hostPort` directly on the node |
-| 6789 | TCP | Prometheus metrics | Cluster-internal only, scraped by ServiceMonitor |
-
-Because the LiveKit pod binds host ports, only one replica can run, so its Deployment uses `strategy: Recreate` and `enableServiceLinks: false` (the injected `LIVEKIT_PORT` service-link env would otherwise crash the server). `use_external_ip: true` makes LiveKit advertise the node's public IP for media.
-
-A new or migrated node must allow `7882/udp` and `7881/tcp` in any provider-level firewall, alongside 80 and 443. See the [security doc](security/security.md) for the recommended firewall posture.
+A new or migrated node only needs to allow ports 80 and 443 in any provider-level firewall. See the [security doc](security/security.md) for the recommended posture.

@@ -46,23 +46,11 @@ Every public host is served over HTTPS with a Let's Encrypt certificate issued a
 
 Only what has an `Ingress` with a `host:` rule is reachable from the internet. Everything else is cluster-internal and reachable only from inside the pod network.
 
-- **Application `/metrics`** are served on the servers' cluster-internal Service ports and scraped by Prometheus through `ServiceMonitor`s. They are deliberately excluded from the public ingress: the client nginx proxies only the API paths (`/api`, `/socket.io`, `/colyseus`), never `/metrics`. LiveKit's Prometheus endpoint (6789) is cluster-internal the same way.
-- **LiveKit media ports** (7882/udp, 7881/tcp) are the documented exception that must be reachable from clients because WebRTC media cannot traverse Traefik (see the [networking doc](../networking.md)). Signaling still goes through the TLS ingress.
-
-## Sotto: app-level login
-
-Sotto's public ingress was originally gated with Traefik `BasicAuth`, which put the auth boundary at the edge and made every request carry the credentials managed by Traefik. That has been replaced with an app-level login so the secret lives inside the application rather than in Traefik configuration.
-
-- **Login is bcrypt-checked against `LOGIN_PASSWORD_HASH`**, a `SealedSecret` value in `apps/sotto/`. The browser sends the password once over TLS; the app hashes it against the stored bcrypt hash and, on success, sets an `httpOnly` cookie that gates the rest of the session.
-- **Typography of the old scheme retired:**
-  - Traefik `BasicAuth` Middleware (`apps/sotto/middleware.yaml`) and its `htpasswd` Secret (`apps/sotto/auth-secret.yaml`) are removed.
-  - The baked-in `SESSION_TOKEN` env/secret (which shared one static token with the built client bundle) is gone, along with the query-parameter-token transport it supported.
-  - No `session-token` entry in `apps/sotto/sealed-secrets.yaml`; the `LOGIN_PASSWORD_HASH` value will be sealed separately (see [ADR-003](../adr/003-sealed-secrets-for-public-repo.md) for the flow).
-- **Properties of the replacement:** `httpOnly` cookies resist XSS token theft that a query-param token could not; one login i.e. bcrypt hash is stored at rest, and it is a one-way hash, safe to commit (sealed like every other secret). See [the Sotto ops guide](../operations/sotto-guide.md).
+- **Application `/metrics`** are served on cluster-internal Service ports and scraped by Prometheus through `ServiceMonitor`s. They are deliberately excluded from the public ingress.
 
 ## Namespace isolation and Prune=false
 
-Each workload lives in its own namespace (`pixelhub`, `sotto`, `9router`, `monitoring`, `cert-manager`, `argocd`), which bounds blast radius and scopes RBAC. Every managed namespace carries `argocd.argoproj.io/sync-options: Prune=false` (`platform/config/namespaces.yaml`), so ArgoCD's automated prune can never delete a live namespace and everything in it, even if its declaration is removed. This is a deliberate guardrail against a destructive one-line change (see [ADR-002](../adr/002-argocd-app-of-apps-sync-waves.md)).
+Each workload lives in its own namespace (`9router`, `monitoring`, `cert-manager`, `argocd`), which bounds blast radius and scopes RBAC. Every managed namespace carries `argocd.argoproj.io/sync-options: Prune=false` (`platform/config/namespaces.yaml`), so ArgoCD's automated prune can never delete a live namespace and everything in it, even if its declaration is removed. This is a deliberate guardrail against a destructive one-line change (see [ADR-002](../adr/002-argocd-app-of-apps-sync-waves.md)).
 
 ## Host hardening already applied
 
@@ -80,4 +68,4 @@ The following was applied directly on the VPS on 2026-07-23:
 
 On a single-NIC VPS the node IP equals the public IP, so the kubelet (10250) and the k3s API (6443) are reachable from the internet. Both are authenticated and return `401` without credentials, so this is a low-severity exposure, not an open door. Host-level blocking is risky here because the same interface carries the control plane, so blocking it wrong can lock out the cluster.
 
-The recommended defense in depth is a **provider-level firewall** (the cloud panel), restricting 6443 and 10250 to known admin IPs while leaving 80, 443, and the LiveKit media ports open. This is the one meaningful hardening step left that does not risk the control plane, and it is the honest cost of running Kubernetes on one public node rather than a private control plane. There is no HA and no network policy engine beyond namespace isolation; both are conscious tradeoffs for a 1 vCPU homelab.
+The recommended defense in depth is a **provider-level firewall** (the cloud panel), restricting 6443 and 10250 to known admin IPs while leaving 80 and 443 open. This is the one meaningful hardening step left that does not risk the control plane, and it is the honest cost of running Kubernetes on one public node rather than a private control plane. There is no HA and no network policy engine beyond namespace isolation; both are conscious tradeoffs for a 1 vCPU homelab.

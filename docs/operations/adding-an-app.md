@@ -2,7 +2,7 @@
 
 Everything the cluster runs is declared in this repo. Adding a project means writing manifests, sealing its secrets, and pushing. ArgoCD picks it up, cert-manager issues its TLS, and the wildcard DNS already resolves its host. No SSH and no DNS change are needed.
 
-This guide uses `<name>` for the new project. Choose an existing app with a matching shape: PixelHub for a split client/server app, Sotto for a private GHCR client/server app with app-level login, or 9Router for a third-party PVC-backed service. Copy only the relevant pattern.
+This guide uses `<name>` for the new project. Choose 9Router as the pattern if you want a PVC-backed service; otherwise describe the resource pattern generically. The cluster currently has only one self-hosted application (9Router) — it does not provide a client/server split or app-level-login example.
 
 ## 1. Application manifests in `apps/<name>/`
 
@@ -54,7 +54,7 @@ If you want the namespace to carry a description and be protected from pruning l
 Never commit plaintext secrets. Create a plaintext `Secret` in `/tmp`, seal it, commit the sealed output, and shred the plaintext.
 
 ```bash
-cp docs/examples/pixelhub-secrets.example.yaml /tmp/secrets.yaml
+cp docs/examples/9router-secrets.example.yaml /tmp/secrets.yaml
 # edit /tmp/secrets.yaml: set metadata.name and metadata.namespace to <name>, then fill real values
 kubeseal --controller-namespace kube-system --format yaml \
   < /tmp/secrets.yaml > apps/<name>/sealed-secrets.yaml
@@ -92,7 +92,7 @@ The wildcard record already resolves the host, so cert-manager issues its certif
 
 ## 5. ServiceMonitor (metrics)
 
-If the app exposes Prometheus metrics, add a `ServiceMonitor` so kube-prometheus-stack scrapes it. The pattern (from `apps/pixelhub/server.yaml`):
+If the app exposes Prometheus metrics, add a `ServiceMonitor` so kube-prometheus-stack scrapes it. The generic pattern:
 
 ```yaml
 apiVersion: monitoring.coreos.com/v1
@@ -113,7 +113,7 @@ spec:
     matchNames: [<name>]
 ```
 
-Two things are load-bearing: the `release: monitoring` label (the operator only selects ServiceMonitors carrying it) and a **named** port on the Service (the endpoint references the port by name). `/metrics` is served on the cluster-internal Service port only; it is never added to the public ingress. LiveKit is a variant of the same pattern that scrapes its native metrics port (6789) by name.
+Two things are load-bearing: the `release: monitoring` label (the operator only selects ServiceMonitors carrying it) and a **named** port on the Service (the endpoint references the port by name). `/metrics` is served on the cluster-internal Service port only; it is never added to the public ingress.
 
 Metrics become panels in the curated **Homelab Overview** dashboard (`platform/config/grafana-dashboard-homelab.yaml`), a ConfigMap labeled `grafana_dashboard: '1'` that Grafana's sidecar loads. To add panels, edit that dashboard JSON; do not enable the chart's default dashboards (they are noise on a single node).
 

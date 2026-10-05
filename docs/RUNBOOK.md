@@ -127,16 +127,3 @@ kubectl -n 9router logs deploy/9router --since=1h | \
 | 未签发 TLS 证书 | 执行 `kubectl describe certificate -A`；使用 HTTP-01 验证时，DNS 必须已解析到服务器 |
 | 节点资源压力过高 | 在 Grafana 的 Homelab Overview 仪表板查看 VPS 区域；CPU 限流会优先在此处显示 |
 | ArgoCD 界面响应较慢 | 所有服务共用 1 vCPU，同步期间变慢属于正常现象 |
-
-## PixelHub 语音（LiveKit）
-
-- **密钥**：按上文“密钥”一节的 kubeseal 流程，将
-  `docs/examples/pixelhub-secrets.example.yaml` 密封为
-  `apps/pixelhub/sealed-secrets.yaml`。`livekit-keys` 项的值应为 LIVEKIT_KEYS
-  所需的 `"key: secret"` 组合字符串。
-- **网络**：信令通过 Traefik 使用 `livekit.lab.csharpkit.com` 上的 WSS；WebRTC
-  媒体流通过 hostPort 绕过入口：`7882/udp`（复用模式）和 `7881/tcp`（回退模式）。
-  新服务器必须在安全组中放行这些端口。
-- **验证**：执行 `curl -s https://livekit.lab.csharpkit.com` 应返回 LiveKit 的 OK 页面；
-  LiveKit Pod 日志应显示 `"starting LiveKit server"`；在应用中开启语音的两个浏览器，
-  当各自头像靠近时应能听到对方。
