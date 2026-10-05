@@ -70,7 +70,7 @@ graph LR
     Root --> w0 --> w1 --> w2
 ```
 
-- **波次 0**：cert-manager（CRD）、sealed-secrets（解密密钥）和 OpenSandbox 1.1（沙箱控制平面；同其他 CRD-based 组件一样不依赖应用层资源）。其余组件都依赖 cert-manager/sealed-secrets。
+- **波次 0**：cert-manager（CRD）、sealed-secrets（解密密钥）和 OpenSandbox 1.1（沙箱控制平面；同其他 CRD-based 组件一样不依赖应用层资源，参见 [ADR-007](../adr/007-opensandbox-platform.md)）。其余组件都依赖 cert-manager/sealed-secrets。
 - **波次 1**：platform-config（`letsencrypt-prod` ClusterIssuer 和 ArgoCD 界面的 Ingress）以及 monitoring。二者都依赖波次 0 中创建的 CRD。
 - **波次 2**：平台就绪后部署各应用。
 
