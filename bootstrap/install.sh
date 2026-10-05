@@ -9,6 +9,8 @@ REPO_URL="https://github.com/geffzhang/cloudhomelab"
 # "stable" tracks the latest stable release; older pins hit diff-schema bugs
 # against current Kubernetes (e.g. .status.terminatingReplicas on 2.12).
 ARGOCD_VERSION="stable"
+BOOTSTRAP_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$BOOTSTRAP_DIR/k3s-registry.sh"
 
 log() { echo -e "\033[1;32m[homelab]\033[0m $*"; }
 
@@ -75,7 +77,14 @@ log "Hardening host..."
 harden_host
 
 # ── 1. k3s (includes Traefik ingress, CoreDNS, local-path storage) ──────────
-if ! command -v k3s >/dev/null 2>&1; then
+if command -v k3s >/dev/null 2>&1; then
+  K3S_INSTALLED=true
+else
+  K3S_INSTALLED=false
+fi
+configure_k3s_registry_mirror /etc/rancher/k3s/registries.yaml "$K3S_INSTALLED"
+
+if [[ "$K3S_INSTALLED" == false ]]; then
   log "Installing k3s..."
   curl -sfL https://rancher-mirror.rancher.cn/k3s/k3s-install.sh | INSTALL_K3S_MIRROR=cn sh -
 else

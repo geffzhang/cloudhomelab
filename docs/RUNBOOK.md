@@ -13,6 +13,13 @@
    ```
   首次安装 k3s 时，脚本会使用 Rancher 中国镜像获取安装脚本、版本信息和安装文件；
   如果服务器已安装 k3s，则保持原有逻辑并跳过安装。
+  这与容器镜像加速是两项独立配置：bootstrap 会在安装 k3s 前创建
+  `/etc/rancher/k3s/registries.yaml`，将 Docker Hub（`docker.io`）镜像请求转发到
+  腾讯云 `https://mirror.ccs.tencentyun.com`，以便拉取 `rancher/mirrored-pause` 等镜像。
+  如果现有配置文件已包含该地址则保持不变；若文件存在但未配置该地址，脚本会停止并提示
+  手动合并，不会覆盖现有仓库配置或凭据。对于已安装 k3s 的服务器，首次创建此配置后会
+  自动重启对应的 `k3s` 或 `k3s-agent` 服务，Pod 可能短暂中断；首次安装则会在 k3s 启动
+  前完成配置。
   初始化脚本还会自动加固主机，且可安全重复运行：配置 2 GB 交换空间、
    fail2ban、限制 node-exporter（9100 端口）的防火墙规则，以及仅允许 SSH
    密钥登录（只有在 `authorized_keys` 中存在公钥时才会启用，避免新服务器
