@@ -1,6 +1,6 @@
 # Platform Overview
 
-This homelab is one VPS (1 vCPU, 4 GB, 179.197.71.43) running single-node k3s, declared entirely in this git repo. ArgoCD watches the repo and makes the cluster match it. Four user-facing applications are self-hosted on top: PixelHub, Mixtape, Sotto, and 9Router. ArgoCD, Traefik, cert-manager, sealed-secrets, Prometheus, Grafana, and exporters are supporting infrastructure. HomeLab Landing is an externally hosted public showcase, not one of the four self-hosted applications.
+This homelab is one VPS (1 vCPU, 4 GB, 179.197.71.43) running single-node k3s, declared entirely in this git repo. ArgoCD watches the repo and makes the cluster match it. Three user-facing applications are self-hosted on top: PixelHub, Sotto, and 9Router. ArgoCD, Traefik, cert-manager, sealed-secrets, Prometheus, Grafana, and exporters are supporting infrastructure. HomeLab Landing is an externally hosted public showcase, not one of the three self-hosted applications.
 
 For the decisions behind this design, see the [ADRs](../adr/). For the original design note, see [docs/specs](../specs/). For step-by-step operations, see the [runbook](../RUNBOOK.md).
 
@@ -30,9 +30,6 @@ graph TB
             PServer["server (Colyseus)"]
             LiveKit["LiveKit SFU"]
         end
-        subgraph mix["ns: mixtape"]
-            MixApp["mixtape (node/express)"]
-        end
         subgraph sotto["ns: sotto"]
             SClient["client (nginx)"]
             SServer["server (Node)<br/>English/Portuguese transcription<br/>AI summary via 9Router"]
@@ -44,7 +41,6 @@ graph TB
     end
 
     ArgoCD -. reconciles .-> pixel
-    ArgoCD -. reconciles .-> mix
     ArgoCD -. reconciles .-> sotto
     ArgoCD -. reconciles .-> router
     ArgoCD -. reconciles .-> mon
@@ -77,7 +73,6 @@ graph LR
     end
     subgraph w2["wave 2"]
         PH["pixelhub"]
-        MIX["mixtape"]
         SOT["sotto"]
         R9R["9router"]
     end
@@ -104,7 +99,6 @@ flowchart LR
     User --> Landing
 
     Traefik -- "pixelhub.lab" --> PClient["pixelhub client"]
-    Traefik -- "mixtape.lab" --> MClient["mixtape"]
     Traefik -- "sotto.lab" --> SClient["sotto client"]
     Traefik -- "9router.lab" --> R9C["9router"]
     Traefik -- "argo.lab" --> Argo["argocd-server"]
@@ -149,7 +143,6 @@ The single `letsencrypt-prod` ClusterIssuer solves HTTP-01 through Traefik, so n
 | `kube-system` | k3s system components and the sealed-secrets controller |
 | `monitoring` | Prometheus, Grafana, exporters (`grafana.lab.csharpkit.com`) |
 | `pixelhub` | Client, Colyseus server, LiveKit SFU |
-| `mixtape` | Single node/express service, PVC-backed storage, multiple 3D sound-equipment UIs |
 | `sotto` | Client (nginx) + Node server; bilingual English/Portuguese live Deepgram transcription and AI summaries through 9Router; no PVC |
 | `9router` | Authenticated self-hosted AI gateway (Deployment + PVC); holds subscription OAuth tokens and issued API keys on its PVC |
 

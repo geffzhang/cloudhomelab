@@ -2,7 +2,7 @@
 
 Everything the cluster runs is declared in this repo. Adding a project means writing manifests, sealing its secrets, and pushing. ArgoCD picks it up, cert-manager issues its TLS, and the wildcard DNS already resolves its host. No SSH and no DNS change are needed.
 
-This guide uses `<name>` for the new project. Choose an existing app with a matching shape: PixelHub for a split client/server app, Sotto for a private GHCR client/server app with app-level login, Mixtape for a single PVC-backed service, or 9Router for a third-party PVC-backed service. Copy only the relevant pattern.
+This guide uses `<name>` for the new project. Choose an existing app with a matching shape: PixelHub for a split client/server app, Sotto for a private GHCR client/server app with app-level login, or 9Router for a third-party PVC-backed service. Copy only the relevant pattern.
 
 ## 1. Application manifests in `apps/<name>/`
 
@@ -13,7 +13,7 @@ A typical web app has:
 - **`client.yaml`**: a Deployment (nginx serving the static bundle) plus a Service on port 80. The client nginx proxies its API path to the in-cluster `server` Service.
 - **`server.yaml`**: a Deployment for the API plus a Service, and usually a ServiceMonitor (see step 5). Name the Service `server` so the client's nginx proxy target (`http://server:<port>`) resolves.
 - **`ingress.yaml`**: the public route (see step 4).
-- Stateful pieces as needed: a Deployment with `strategy: Recreate` and a PVC for single-writer persistent data (see `apps/mixtape/deployment.yaml` or `apps/9router/deployment.yaml`). Use a StatefulSet with `volumeClaimTemplates` when the application requires per-replica storage.
+- Stateful pieces as needed: a Deployment with `strategy: Recreate` and a PVC for single-writer persistent data (see `apps/9router/deployment.yaml`). Use a StatefulSet with `volumeClaimTemplates` when the application requires per-replica storage.
 
 Set resource `requests` and `limits` on every container. The node is 1 vCPU / 4 GB and CPU is the scarce resource; unbounded pods starve everything else. Copy the sizing in the existing apps as a baseline.
 

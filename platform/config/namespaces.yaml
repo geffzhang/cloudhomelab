@@ -18,19 +18,6 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: mixtape
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false
-    homelab.csharpkit.com/description: >-
-      Mixtape: open library of interactive 3D sound equipment (MP3 click
-      wheel, CD player). Single Node/Express service, PVC-backed storage.
-      Public at mixtape.lab.csharpkit.com.
-  labels:
-    app.kubernetes.io/part-of: homelab
----
-apiVersion: v1
-kind: Namespace
-metadata:
   name: monitoring
   annotations:
     argocd.argoproj.io/sync-options: Prune=false

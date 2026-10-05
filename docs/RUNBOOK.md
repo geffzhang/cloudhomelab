@@ -51,7 +51,7 @@ kubectl -n kube-system get secret -l sealedsecrets.bitnami.com/sealed-secrets-ke
   -o yaml > sealing-key-backup.yaml   # 存放在 Git 仓库之外（例如密码管理器）
 ```
 
-> 当前仓库未配置自动数据库备份任务。Mixtape 和 9Router 的持久化数据需另行制定备份方案。
+> 当前仓库未配置自动数据库备份任务。9Router 的持久化数据需另行制定备份方案。
 
 ## 部署应用新版本
 

@@ -24,12 +24,11 @@ Hand-configured servers rot: undocumented tweaks pile up, migrations become arch
 
 ## What runs on it
 
-Four user-facing applications are self-hosted on the 1 vCPU / 4 GB VPS:
+Three user-facing applications are self-hosted on the 1 vCPU / 4 GB VPS:
 
 | App | Purpose |
 |-----|---------|
 | 👾 **[PixelHub](https://github.com/mateuseap/pixelhub)** | Gather-style 2D world with proximity chat and voice |
-| 🎵 **[Mixtape](https://github.com/mateuseap/mixtape)** | Open library of interactive 3D sound equipment (MP3 player, CD player) |
 | 🎙 **Sotto** | Bilingual English/Portuguese live transcription with AI-generated summaries through 9Router (`sotto.lab.csharpkit.com`) |
 | 🧭 **9Router** | Self-hosted AI gateway providing authenticated rate-limit fallback for Claude Code (`9router.lab.csharpkit.com`) |
 
@@ -42,7 +41,7 @@ Infrastructure services support those apps:
 | 🔐 **cert-manager** | Automatic Let's Encrypt TLS for every cluster host |
 | 🗝 **sealed-secrets** | Encrypted secrets, safe in public git |
 
-The externally hosted **[HomeLab Landing](https://github.com/mateuseap/homelab-landing)** is the public showcase. It is separate from the four self-hosted applications and cluster infrastructure.
+The externally hosted **[HomeLab Landing](https://github.com/mateuseap/homelab-landing)** is the public showcase. It is separate from the three self-hosted applications and cluster infrastructure.
 
 ## Architecture at a glance
 
@@ -57,7 +56,6 @@ flowchart TB
         cm["cert-manager<br/>Let's Encrypt certificates"]
         seal["sealed-secrets<br/>decrypts SealedSecrets in-cluster"]
         pixel["PixelHub<br/>client, server, LiveKit"]
-        mix["Mixtape<br/>server, storage"]
         sotto["Sotto<br/>English/Portuguese transcription, AI summary"]
         router["9Router<br/>authenticated AI gateway, storage"]
         mon["Prometheus + Grafana<br/>curated Homelab Overview dashboard"]
@@ -67,7 +65,6 @@ flowchart TB
 
     gh -->|poll| argo
     argo --> pixel
-    argo --> mix
     argo --> sotto
     argo --> router
     argo --> mon
@@ -76,7 +73,6 @@ flowchart TB
     cm --> traefik
     users -->|HTTPS| traefik
     traefik --> pixel
-    traefik --> mix
     traefik --> sotto
     traefik --> router
     traefik --> argo
@@ -93,7 +89,7 @@ flowchart TB
 ```mermaid
 flowchart LR
     dev(["push to main"])
-    subgraph app["first-party app repos<br/>PixelHub, Mixtape, Sotto"]
+    subgraph app["first-party app repos<br/>PixelHub, Sotto"]
         ci["GitHub Actions<br/>build image"]
     end
     ghcr[("GHCR")]

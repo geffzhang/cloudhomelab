@@ -62,7 +62,7 @@ Sotto's public ingress was originally gated with Traefik `BasicAuth`, which put 
 
 ## Namespace isolation and Prune=false
 
-Each workload lives in its own namespace (`pixelhub`, `mixtape`, `sotto`, `9router`, `monitoring`, `cert-manager`, `argocd`), which bounds blast radius and scopes RBAC. Every managed namespace carries `argocd.argoproj.io/sync-options: Prune=false` (`platform/config/namespaces.yaml`), so ArgoCD's automated prune can never delete a live namespace and everything in it, even if its declaration is removed. This is a deliberate guardrail against a destructive one-line change (see [ADR-002](../adr/002-argocd-app-of-apps-sync-waves.md)).
+Each workload lives in its own namespace (`pixelhub`, `sotto`, `9router`, `monitoring`, `cert-manager`, `argocd`), which bounds blast radius and scopes RBAC. Every managed namespace carries `argocd.argoproj.io/sync-options: Prune=false` (`platform/config/namespaces.yaml`), so ArgoCD's automated prune can never delete a live namespace and everything in it, even if its declaration is removed. This is a deliberate guardrail against a destructive one-line change (see [ADR-002](../adr/002-argocd-app-of-apps-sync-waves.md)).
 
 ## Host hardening already applied
 
