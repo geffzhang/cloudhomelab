@@ -11,7 +11,7 @@ metadata:
 spec:
   instances: 1
   hostname:
-    hostname: keycloak.lab.csharpkit.com
+    hostname: https://keycloak.lab.csharpkit.com
     admin: https://keycloak.lab.csharpkit.com
     strict: false
   proxy:
