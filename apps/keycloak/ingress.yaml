@@ -1,0 +1,30 @@
+---
+# Public route to Keycloak. Traefik terminates TLS via the
+# letsencrypt-prod ClusterIssuer; the upstream is plain HTTP on
+# port 8080 (Keycloak trusts the X-Forwarded-* headers from
+# Traefik per spec.proxy.edgeHeaders). sync-wave 5 so the
+# Ingress waits for the Keycloak CR to be reconciled first.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: keycloak.lab.csharpkit.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak
+                port:
+                  number: 8080
+  tls:
+    - hosts: [keycloak.lab.csharpkit.com]
+      secretName: keycloak-tls

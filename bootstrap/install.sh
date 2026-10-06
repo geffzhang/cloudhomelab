@@ -115,6 +115,41 @@ $KUBECTL -n argocd rollout restart deployment argocd-server
 log "Waiting for ArgoCD server..."
 $KUBECTL -n argocd rollout status deployment argocd-server --timeout=300s
 
+# ── 2b. Cap ArgoCD workload resource usage for the 1 vCPU / 4GB VPS ─────────
+# upstream install.yaml ships no limits, so a runaway controller or repo server
+# could starve everything else. Sized so total requests stay well under the
+# platform budget while still leaving headroom for spikes:
+#   requests: 275m CPU, 640Mi memory (sum of all 5 workloads)
+#   limits:   1.5  CPU, 1.66Gi memory (allows bursts, still capped)
+# Patches are idempotent (strategic merge on container name); safe to re-run.
+log "Patching ArgoCD workload resources..."
+patch_argocd_resources() {
+  local kind=$1 name=$2 cname=$3 cpu_req=$4 mem_req=$5 cpu_lim=$6 mem_lim=$7
+  $KUBECTL -n argocd patch "${kind}/${name}" --type=strategic -p "$(cat <<EOF
+{
+  "spec":{"template":{"spec":{"containers":[{
+    "name":"${cname}",
+    "resources":{
+      "requests":{"cpu":"${cpu_req}","memory":"${mem_req}"},
+      "limits":{"cpu":"${cpu_lim}","memory":"${mem_lim}"}
+    }
+  }]}}}
+}
+EOF
+)"
+}
+patch_argocd_resources statefulset argocd-application-controller    argocd-application-controller 100m 256Mi 500m 512Mi
+patch_argocd_resources deployment  argocd-repo-server                 argocd-repo-server                  50m 128Mi 300m 384Mi
+patch_argocd_resources deployment  argocd-server                      argocd-server                       50m 128Mi 300m 384Mi
+patch_argocd_resources deployment  argocd-redis                       redis                               50m  64Mi 200m 128Mi
+patch_argocd_resources deployment  argocd-applicationset-controller   argocd-applicationset-controller    25m  64Mi 200m 256Mi
+
+log "Waiting for ArgoCD workloads to settle..."
+$KUBECTL -n argocd rollout status statefulset argocd-application-controller --timeout=300s
+$KUBECTL -n argocd rollout status deployment argocd-repo-server --timeout=300s
+$KUBECTL -n argocd rollout status deployment argocd-redis --timeout=300s
+$KUBECTL -n argocd rollout status deployment argocd-applicationset-controller --timeout=300s
+
 # ── 3. Root app-of-apps, from here on, git is the source of truth ──────────
 log "Applying root application (GitOps takes over)..."
 $KUBECTL apply -f "$(dirname "$0")/root.yaml"

@@ -1,0 +1,34 @@
+---
+# Shared platform PostgreSQL (Bitnami chart, currently PG 17.6.0).
+# Wave 1: needs no CRDs, but Keycloak (wave 2) depends on this being
+# Ready. Multi-source mirrors the monitoring/logging pattern: chart
+# from Bitnami, values from this repo. releaseName is fixed so the
+# service FQDN stays stable across upgrades.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-postgres
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  sources:
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: postgresql
+      targetRevision: 17.1.2
+      helm:
+        releaseName: keycloak-postgres
+        valueFiles:
+          - $values/platform/postgres/values.yaml
+    - repoURL: https://github.com/geffzhang/cloudhomelab
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: database
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

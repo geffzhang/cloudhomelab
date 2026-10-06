@@ -1,0 +1,27 @@
+---
+# Keycloak 26.8 instance: Keycloak CR + KeycloakRealmImport + Ingress.
+# Wave 2: depends on keycloak-operator (wave 0, CRDs) and
+# platform-postgres (wave 1, database). SealedSecret in this same
+# path triggers operator reconciliation; realm import is idempotent
+# and re-runs once encrypted data lands in PR 2.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keycloak
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/geffzhang/cloudhomelab
+    targetRevision: main
+    path: apps/keycloak
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: keycloak
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
