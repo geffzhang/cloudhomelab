@@ -249,6 +249,22 @@ spec:
         runAsNonRoot: true
         seccompProfile:
           type: RuntimeDefault
+      initContainers:
+        - command:
+          - sh
+          - -c
+          - set -eu; for kind in pools.sandbox.opensandbox.io batchsandboxes.sandbox.opensandbox.io
+            sandboxsnapshots.sandbox.opensandbox.io; do echo waiting $kind; until kubectl
+            get $kind -A >/dev/null 2>&1; do sleep 2; done; echo done $kind; done
+          image: bitnami/kubectl:1.31
+          name: wait-for-crds
+          resources:
+            limits:
+              cpu: 100m
+              memory: 64Mi
+            requests:
+              cpu: 10m
+              memory: 32Mi
       containers:
       - name: manager
         image: sandbox-registry.cn-zhangjiakou.cr.aliyuncs.com/opensandbox/controller:release-1.1.0
