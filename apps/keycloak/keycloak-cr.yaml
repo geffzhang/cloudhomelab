@@ -1,0 +1,38 @@
+---
+# Keycloak 26.8 instance. Reconciles a single StatefulSet; the operator
+# fills the rest (Service, ServiceMonitor opt-in, etc.). host +
+# proxy + http.tls are the Traefik passthrough config: Traefik
+# terminates TLS, forwards plain HTTP, Keycloak trusts X-Forwarded-*.
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  instances: 1
+  hostname:
+    hostname: keycloak.lab.csharpkit.com
+    admin:    keycloak.lab.csharpkit.com
+    strict:   false
+  proxy:
+    edgeHeaders: true
+  features:
+    enabled:
+      - persistent-user-sessions
+  db:
+    vendor: postgres
+    host: keycloak-postgres-postgresql.database.svc.cluster.local
+    port: 5432
+    database: keycloak
+    username: keycloak
+    password:
+      valueFrom:
+        secretKeyRef:
+          name: postgres-credentials
+          key: keycloak-password
+  http:
+    tls:
+      enabled: false
+  resources:
+    requests: { cpu: 200m, memory: 384Mi }
+    limits:   { cpu: 500m, memory: 768Mi }
