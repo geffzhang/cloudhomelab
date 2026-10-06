@@ -98,9 +98,9 @@ spec:
 - `admin-password`：homelab-admin 初始密码
 - `argocd-client-secret`、`grafana-client-secret`、`9router-client-secret`、`opensandbox-client-secret`：四个 OIDC 客户端 secret
 
-RealmImport CR 的 `users[].credentials[].valueFrom.secretKeyRef` 与 `clients[].secret.valueFrom.secretKeyRef` 引用同一份 Secret；轮换时改一个文件即可。
+`KeycloakRealmImport.spec.realm` 接收完整的 RealmRepresentation，因此 `users` 和 `clients` 嵌套在 `realm` 下。凭据由 `spec.placeholders` 从同命名空间的 `homelab-secrets` 读取，并在 RealmRepresentation 字符串字段中用 `${PLACEHOLDER}` 引用；轮换时改 SealedSecret 即可。
 
-> Keycloak 26.x operator supports `secretKeyRef` 形式引用 secret；落地前用 `kubectl explain k8s.keycloak.org/v2alpha1.KeycloakRealmImport.spec.clients.secret` 验证字段定义；若 API 仅支持明文，回退为「operator 自动生成 + 后续 PR 提取 Secret 配置应用」模式。
+KeycloakRealmImport 使用 `k8s.keycloak.org/v2beta1`；CRD 的 `spec` 定义 `keycloakCRName`、`realm` 和 `placeholders`，而用户与客户端字段遵循 RealmRepresentation schema。
 
 ### 资源精简
 
@@ -139,5 +139,5 @@ PR 2 合并后 ArgoCD 重新协调，RealmImport 导入 `homelab` realm，admin 
 - **跨命名空间 secretKeyRef**：Keycloak operator 默认 ClusterRole 含 cluster-wide `secrets get`，可跨 ns 读 `postgres-credentials`（[ADR-008](008-keycloak-platform.md) 决策）；若 RBAC 受限，回退为在 `keycloak` 命名空间放一份 SealedSecret 副本
 - **v1 仅交付 Keycloak 平台**：ArgoCD / Grafana / 9Router / OpenSandbox 的 OIDC 接入各开独立 PR，本仓库 `apps/9router/deployment.yaml` 等文件不修改
 - **单副本 Keycloak**：滚动更新期间短暂不可用；多副本 + Infinispan 留作多节点扩展时
-- **依赖 Keycloak Operator API 演进**：`KeycloakRealmImport.spec.users[].credentials[].valueFrom` 与 `clients[].secret.valueFrom` 是 26.x API；跨大版本可能变更；本仓库绑定 Keycloak 26.x 升级路径
+- **依赖 Keycloak Operator API 演进**：`KeycloakRealmImport.spec.placeholders` 与 Keycloak 26.x 的 RealmRepresentation schema 耦合；跨大版本可能变更；本仓库绑定 Keycloak 26.x 升级路径
 - **依赖 Bitnami postgresql chart 维护活跃度**：[ADR-008](008-keycloak-platform.md) 中已分析

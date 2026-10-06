@@ -8,7 +8,7 @@ Keycloak 26.8 + 平台 PostgreSQL 分三个同步波次，由 ArgoCD 通过 `app
 
 | 波次 | Application | 源目录 | 内容 |
 |------|-------------|--------|---------|
-| 0 | `keycloak-operator` | `apps/keycloak-operator/` | Keycloak Operator 26.8.0 + 4 个 CRD（`keycloaks.keycloak.org/v2alpha1`、`keycloakrealmimports`、`keycloakoidcclients`、`keycloaksamlclients`）|
+| 0 | `keycloak-operator` | `apps/keycloak-operator/` | Keycloak Operator 26.8.0 + 4 个 CRD（`keycloaks.keycloak.org/v2beta1`、`keycloakrealmimports/v2beta1`、`keycloakoidcclients`、`keycloaksamlclients`）|
 | 1 | `platform-postgres` | `apps/postgres/` + `platform/postgres/` | Git 中 vendored 的 Bitnami Helm chart 16.7.27（PG 17.6.0），`releaseName: keycloak-postgres` |
 | 2 | `keycloak` | `apps/keycloak/` | `Keycloak` CR、`KeycloakRealmImport`、`Ingress`、`SealedSecret homelab-secrets` |
 
@@ -18,7 +18,7 @@ Keycloak 26.8 + 平台 PostgreSQL 分三个同步波次，由 ArgoCD 通过 `app
 
 PR 1 不包含任何明文——ArgoCD 同步后：
 
-- PostgreSQL Pod 启动，operator Pod 启动，Keycloak CR 处于 **Pending**（KeycloakRealmImport 的 `secretKeyRef` 解不到密文）。
+- PostgreSQL Pod 启动，operator Pod 启动，Keycloak CR 处于 **Pending**（RealmImport 中的密钥 placeholder 在 `homelab-secrets` 尚未密封时无法解析）。
 - Ingress 等待 Keycloak 端点（`spec.ingressClassName: traefik`，cert-manager HTTP-01）。
 - 一旦 `homelab-secrets` 与 `postgres-credentials` 完成密封并合入 `main`，operator 重启 Keycloak 调和循环，端到端联通。
 
@@ -79,7 +79,7 @@ git commit -m "feat(keycloak): seal realm credentials"
 git push
 ```
 
-SealedSecret 的 5 个键名必须与 `apps/keycloak/realm-import.yaml` 中 `users[].credentials[].valueFrom.secretKeyRef.key` 与 `clients[].secret.valueFrom.secretKeyRef.key` 完全一致。
+SealedSecret 的 5 个键名必须与 `apps/keycloak/realm-import.yaml` 的 `spec.placeholders.*.secret.key` 完全一致；`spec.realm` 中的用户凭据和客户端 secret 用 `${PLACEHOLDER}` 引用对应项。
 
 ### 验证
 

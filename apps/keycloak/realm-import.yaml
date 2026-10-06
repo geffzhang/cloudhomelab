@@ -3,12 +3,34 @@
 # `homelab-admin` user with realm-admin role, and four OIDC
 # clients (argocd / grafana / 9router / opensandbox). Each client is
 # confidential with a sealed secret; admin password is sealed too.
-apiVersion: k8s.keycloak.org/v2alpha1
+apiVersion: k8s.keycloak.org/v2beta1
 kind: KeycloakRealmImport
 metadata:
   name: homelab
   namespace: keycloak
 spec:
+  keycloakCRName: keycloak
+  placeholders:
+    HOMELAB_ADMIN_PASSWORD:
+      secret:
+        name: homelab-secrets
+        key: admin-password
+    ARGOCD_CLIENT_SECRET:
+      secret:
+        name: homelab-secrets
+        key: argocd-client-secret
+    GRAFANA_CLIENT_SECRET:
+      secret:
+        name: homelab-secrets
+        key: grafana-client-secret
+    ROUTER_CLIENT_SECRET:
+      secret:
+        name: homelab-secrets
+        key: 9router-client-secret
+    OPENSANDBOX_CLIENT_SECRET:
+      secret:
+        name: homelab-secrets
+        key: opensandbox-client-secret
   realm:
     realm: homelab
     enabled: true
@@ -19,83 +41,64 @@ spec:
     internationalizationEnabled: false
     ssoSessionIdleTimeout: 28800
     accessTokenLifespan: 1800
-  users:
-    - username: homelab-admin
-      enabled: true
-      emailVerified: true
-      realmRoles:
-        - realm-admin
-      credentials:
-        - type: password
-          valueFrom:
-            secretKeyRef:
-              name: homelab-secrets
-              key: admin-password
-  clients:
-    - clientId: argocd
-      enabled: true
-      publicClient: false
-      standardFlowEnabled: true
-      directAccessGrantsEnabled: false
-      rootUrl: https://argo.lab.csharpkit.com
-      baseUrl: /
-      redirectUris:
-        - https://argo.lab.csharpkit.com/auth/callback
-      webOrigins:
-        - https://argo.lab.csharpkit.com
-      secret:
-        valueFrom:
-          secretKeyRef:
-            name: homelab-secrets
-            key: argocd-client-secret
+    users:
+      - username: homelab-admin
+        enabled: true
+        emailVerified: true
+        realmRoles:
+          - realm-admin
+        credentials:
+          - type: password
+            value: "${HOMELAB_ADMIN_PASSWORD}"
+    clients:
+      - clientId: argocd
+        enabled: true
+        publicClient: false
+        standardFlowEnabled: true
+        directAccessGrantsEnabled: false
+        rootUrl: https://argo.lab.csharpkit.com
+        baseUrl: /
+        redirectUris:
+          - https://argo.lab.csharpkit.com/auth/callback
+        webOrigins:
+          - https://argo.lab.csharpkit.com
+        secret: "${ARGOCD_CLIENT_SECRET}"
 
-    - clientId: grafana
-      enabled: true
-      publicClient: false
-      standardFlowEnabled: true
-      directAccessGrantsEnabled: false
-      rootUrl: https://grafana.lab.csharpkit.com
-      baseUrl: /
-      redirectUris:
-        - https://grafana.lab.csharpkit.com/login/generic_oauth
-      webOrigins:
-        - https://grafana.lab.csharpkit.com
-      secret:
-        valueFrom:
-          secretKeyRef:
-            name: homelab-secrets
-            key: grafana-client-secret
+      - clientId: grafana
+        enabled: true
+        publicClient: false
+        standardFlowEnabled: true
+        directAccessGrantsEnabled: false
+        rootUrl: https://grafana.lab.csharpkit.com
+        baseUrl: /
+        redirectUris:
+          - https://grafana.lab.csharpkit.com/login/generic_oauth
+        webOrigins:
+          - https://grafana.lab.csharpkit.com
+        secret: "${GRAFANA_CLIENT_SECRET}"
 
-    - clientId: 9router
-      enabled: true
-      publicClient: false
-      standardFlowEnabled: true
-      directAccessGrantsEnabled: false
-      rootUrl: https://9router.lab.csharpkit.com
-      baseUrl: /
-      redirectUris:
-        - https://9router.lab.csharpkit.com/auth/callback
-      webOrigins:
-        - https://9router.lab.csharpkit.com
-      secret:
-        valueFrom:
-          secretKeyRef:
-            name: homelab-secrets
-            key: 9router-client-secret
+      - clientId: 9router
+        enabled: true
+        publicClient: false
+        standardFlowEnabled: true
+        directAccessGrantsEnabled: false
+        rootUrl: https://9router.lab.csharpkit.com
+        baseUrl: /
+        redirectUris:
+          - https://9router.lab.csharpkit.com/auth/callback
+        webOrigins:
+          - https://9router.lab.csharpkit.com
+        secret: "${ROUTER_CLIENT_SECRET}"
 
-    - clientId: opensandbox
-      enabled: true
-      publicClient: false
-      standardFlowEnabled: true
-      directAccessGrantsEnabled: false
-      rootUrl: https://sandbox.lab.csharpkit.com
-      baseUrl: /
-      redirectUris:
-        - https://sandbox.lab.csharpkit.com/auth/callback
-      webOrigins:
-        - https://sandbox.lab.csharpkit.com
-      secret:
-        valueFrom:
-          secretKeyRef:
-            name: homelab-secrets
-            key: opensandbox-client-secret
+      - clientId: opensandbox
+        enabled: true
+        publicClient: false
+        standardFlowEnabled: true
+        directAccessGrantsEnabled: false
+        rootUrl: https://sandbox.lab.csharpkit.com
+        baseUrl: /
+        redirectUris:
+          - https://sandbox.lab.csharpkit.com/auth/callback
+        webOrigins:
+          - https://sandbox.lab.csharpkit.com
+        secret: "${OPENSANDBOX_CLIENT_SECRET}"
