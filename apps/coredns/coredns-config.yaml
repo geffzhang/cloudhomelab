@@ -1,0 +1,51 @@
+---
+# Override for k3s's bundled CoreDNS. ArgoCD-owned via ServerSideApply:
+# only `data.Corefile` is in git; k3s continues to own the Deployment/Service
+# and re-applies labels/annotations on its own reconcile cycle. The
+# Application spec uses `ignoreDifferences.jqPathExpressions` to tolerate
+# k3s's Helm metadata drift; SSA field-manager ownership keeps `data.Corefile`
+# safe. See ADR-010 for the full rationale and verification checklist.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: coredns
+    app.kubernetes.io/part-of: homelab
+    homelab.csharpkit.com/managed-by: argocd
+data:
+  Corefile: |
+    .:53 {
+        errors
+        health
+        ready
+        kubernetes cluster.local in-addr.arpa ip6.arpa {
+          pods insecure
+          fallthrough in-addr.arpa ip6.arpa
+        }
+        hosts /etc/coredns/NodeHosts {
+          ttl 60
+          reload 15s
+          fallthrough
+        }
+        prometheus :9153
+        # Tencent DNSPod upstream; replaces k3s default `forward . /etc/resolv.conf`
+        # (which forwards the VPS ISP DNS — too slow for pod DNS). prefer_udp
+        # keeps queries off the slow TCP path; max_fails 3 + expire 10s
+        # short-circuits a slow upstream so pods don't stall. Cache TTL 30s
+        # with success/denial 9984 keeps the hot-path cache large for the
+        # small homelab query set.
+        forward . 119.29.29.29 119.28.28.28 {
+          prefer_udp
+          max_fails 3
+          expire 10s
+        }
+        cache 30 {
+          success 9984
+          denial 9984
+        }
+        loop
+        reload
+        loadbalance
+    }

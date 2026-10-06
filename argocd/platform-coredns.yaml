@@ -1,0 +1,50 @@
+---
+# Permanent override of k3s's bundled CoreDNS ConfigMap. The ConfigMap
+# lives in `kube-system` and is owned by k3s's bundled Helm chart, which
+# would revert it on every k3s restart/upgrade. ArgoCD reconciles via
+# ServerSideApply so only `data.Corefile` is git-managed; k3s continues
+# to manage Deployment/Service and tolerates drift in labels/annotations
+# (ignoreDifferences.jqPathExpressions below).
+#
+# Sync-wave 0: every later Application needs DNS for image pulls and
+# for ArgoCD itself to fetch repo contents. k3s CoreDNS is already
+# running before ArgoCD installs; this Application patches within one
+# reconcile tick after install. Brief window of ISP DNS after a k3s
+# restart (~3 min until ArgoCD next reconcile) is acceptable on this
+# single-node homelab.
+#
+# See ADR-010 for the full rationale and verification checklist.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-coredns
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/geffzhang/cloudhomelab
+    targetRevision: main
+    path: apps/coredns
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions:
+      - CreateNamespace=false   # kube-system already exists
+      - ServerSideApply=true    # ConfigMap field-manager ownership
+  ignoreDifferences:
+    - group: ""
+      kind: ConfigMap
+      name: coredns
+      # Tolerate k3s's Helm/k3s labels and annotations. ArgoCD owns
+      # data.Corefile via SSA; the rest is k3s-managed and we don't
+      # want to fight k3s on metadata bookkeeping.
+      jqPathExpressions:
+        - .metadata.labels
+        - .metadata.annotations
+        # k3s 1.x may render an empty/zero field; ArgoCD never sets these.
+        - .binaryData
+        - .immutable

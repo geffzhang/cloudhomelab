@@ -24,7 +24,7 @@
 
 | 波次 | 应用 | 原因 |
 |------|--------------|--------|
-| 0 | `cert-manager`、`sealed-secrets` | 提供其他组件所依赖的 CRD 和密钥解密能力 |
+| 0 | `cert-manager`、`sealed-secrets`、`platform-coredns` | CRD 与密钥解密能力，以及 Pod 上游 DNS 永久化（参见 ADR-010） |
 | 1 | `platform-config`、`monitoring` | `platform-config` 需要 cert-manager 的 CRD（ClusterIssuer）；监控需要 Operator 的 CRD |
 | 2 | `chesskernel`、`pixelhub` | 平台运行正常后，最后同步应用 |
 
