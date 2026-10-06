@@ -39,15 +39,15 @@ PostgreSQL 与 Keycloak 26.8 解耦：
 
 PG 版本钉在 Keycloak 26.x 的兼容窗口内（PG 14+）；主版本 14 / 15 / 16 / 17 / 18 都满足 Keycloak 26.x 要求，**当前部署选 17.6.0 是工程妥协**——计划升级到 18 时主要工作是 Bitnami chart 升 17→18（PG 17 → 18 大版本升级需要 `pg_upgrade`，详见 Bitnami chart README）。
 
-### Bitnami Helm chart + 多源 ArgoCD Application
+### Vendored Bitnami Helm chart + 多源 ArgoCD Application
 
-模式与 `platform-monitoring.yaml`、`platform-logging.yaml` 完全一致：
+Bitnami PostgreSQL chart 16.7.27（PG 17.6.0）保存在 `platform/postgres/chart/`，由 ArgoCD 从 Git 拉取并用 Helm 渲染。Bitnami 仓库的 chart 索引将该版本指向 Docker Hub OCI；repo-server 不经过 k3s containerd 的镜像加速，因此直接 vendoring chart 可避免 ArgoCD 访问 OCI。PostgreSQL 容器镜像仍由 containerd 按 `registries.yaml` 配置拉取。
 
 ```yaml
 sources:
-  - repoURL: https://charts.bitnami.com/bitnami
-    chart: postgresql
-    targetRevision: 16.7.27  # Bitnami chart 16.7.27 ships PG 17.6.0
+  - repoURL: https://github.com/geffzhang/cloudhomelab
+    targetRevision: main
+    path: platform/postgres/chart
     helm:
       releaseName: keycloak-postgres
       valueFiles: [$values/platform/postgres/values.yaml]
@@ -58,9 +58,11 @@ sources:
 
 理由：
 
-1. **与现有 chart 风格统一**：cert-manager、monitoring、logging 均为外部 Helm chart
-2. **多源解耦**：chart 版本由 Bitnami 发布周期决定；values 演进与本仓库 release 独立
+1. **避免 OCI 网络依赖**：ArgoCD repo-server 从 Git 获取 chart，不需要代理或 Docker Hub 访问权限
+2. **多源解耦**：chart 与 values 分开管理；values 演进不需要重新打包 chart
 3. **`releaseName: keycloak-postgres`**：固定 release 名 → Service FQDN 稳定（`keycloak-postgres.database.svc.cluster.local`），Keycloak CR `db.host` 引用此 FQDN
+
+升级 chart 时，将官方版本归档解包到 `platform/postgres/chart/`，检查 `Chart.yaml` 中的 chart/app 版本，并使用该目录与 `platform/postgres/values.yaml` 执行 `helm template` 验证后再推送。
 
 ### SealedSecret 单源
 

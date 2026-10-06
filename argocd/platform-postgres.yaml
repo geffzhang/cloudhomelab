@@ -1,9 +1,9 @@
 ---
-# Shared platform PostgreSQL (Bitnami chart, currently PG 17.6.0).
+# Shared platform PostgreSQL (vendored Bitnami chart, currently PG 17.6.0).
 # Wave 1: needs no CRDs, but Keycloak (wave 2) depends on this being
-# Ready. Multi-source mirrors the monitoring/logging pattern: chart
-# from Bitnami, values from this repo. releaseName is fixed so the
-# service FQDN stays stable across upgrades.
+# Ready. The chart is vendored in this repo to avoid ArgoCD fetching its
+# OCI-hosted archive; values and SealedSecret remain separate Git sources.
+# releaseName is fixed so the service FQDN stays stable across upgrades.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -14,9 +14,9 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://charts.bitnami.com/bitnami
-      chart: postgresql
-      targetRevision: 16.7.27
+    - repoURL: https://github.com/geffzhang/cloudhomelab
+      targetRevision: main
+      path: platform/postgres/chart
       helm:
         releaseName: keycloak-postgres
         valueFiles:
