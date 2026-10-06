@@ -11,7 +11,7 @@ metadata:
 spec:
   keycloakCRName: keycloak
   placeholders:
-    HOMELAB_ADMIN_PASSWORD:
+    ADMIN_PASSWORD:
       secret:
         name: homelab-secrets
         key: admin-password
@@ -23,7 +23,7 @@ spec:
       secret:
         name: homelab-secrets
         key: grafana-client-secret
-    ROUTER_CLIENT_SECRET:
+    NINEROUTER_CLIENT_SECRET:
       secret:
         name: homelab-secrets
         key: 9router-client-secret
@@ -49,7 +49,7 @@ spec:
           - realm-admin
         credentials:
           - type: password
-            value: "${HOMELAB_ADMIN_PASSWORD}"
+            value: ${ADMIN_PASSWORD}
     clients:
       - clientId: argocd
         enabled: true
@@ -62,8 +62,7 @@ spec:
           - https://argo.lab.csharpkit.com/auth/callback
         webOrigins:
           - https://argo.lab.csharpkit.com
-        secret: "${ARGOCD_CLIENT_SECRET}"
-
+        secret: ${ARGOCD_CLIENT_SECRET}
       - clientId: grafana
         enabled: true
         publicClient: false
@@ -75,8 +74,7 @@ spec:
           - https://grafana.lab.csharpkit.com/login/generic_oauth
         webOrigins:
           - https://grafana.lab.csharpkit.com
-        secret: "${GRAFANA_CLIENT_SECRET}"
-
+        secret: ${GRAFANA_CLIENT_SECRET}
       - clientId: 9router
         enabled: true
         publicClient: false
@@ -88,8 +86,7 @@ spec:
           - https://9router.lab.csharpkit.com/auth/callback
         webOrigins:
           - https://9router.lab.csharpkit.com
-        secret: "${ROUTER_CLIENT_SECRET}"
-
+        secret: ${NINEROUTER_CLIENT_SECRET}
       - clientId: opensandbox
         enabled: true
         publicClient: false
@@ -101,4 +98,4 @@ spec:
           - https://sandbox.lab.csharpkit.com/auth/callback
         webOrigins:
           - https://sandbox.lab.csharpkit.com
-        secret: "${OPENSANDBOX_CLIENT_SECRET}"
+        secret: ${OPENSANDBOX_CLIENT_SECRET}

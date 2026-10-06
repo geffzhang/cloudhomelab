@@ -12,10 +12,10 @@ spec:
   instances: 1
   hostname:
     hostname: keycloak.lab.csharpkit.com
-    admin:    keycloak.lab.csharpkit.com
-    strict:   false
+    admin: keycloak.lab.csharpkit.com
+    strict: false
   proxy:
-    edgeHeaders: true
+    headers: xforwarded
   features:
     enabled:
       - persistent-user-sessions
@@ -25,14 +25,17 @@ spec:
     port: 5432
     database: keycloak
     usernameSecret:
-      name: keycloak-db-username
+      name: postgres-credentials
       key: username
     passwordSecret:
       name: postgres-credentials
       key: keycloak-password
   http:
-    tls:
-      enabled: false
+    httpEnabled: true
   resources:
-    requests: { cpu: 200m, memory: 384Mi }
-    limits:   { cpu: 500m, memory: 768Mi }
+    requests:
+      cpu: 200m
+      memory: 384Mi
+    limits:
+      cpu: 500m
+      memory: 768Mi
