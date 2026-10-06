@@ -39,6 +39,13 @@ CONFIG="$TEST_ROOT/etc/rancher/k3s/registries.yaml"
 EXPECTED_CONFIG='mirrors:
   docker.io:
     endpoint:
+      - "https://mirror.ccs.tencentyun.com"
+  registry.k8s.io:
+    endpoint:
+      - "https://k8s.m.daocloud.io"'
+LEGACY_CONFIG='mirrors:
+  docker.io:
+    endpoint:
       - "https://mirror.ccs.tencentyun.com"'
 
 fail() {
@@ -69,6 +76,19 @@ assert_equal "$(cat "$CONFIG")" "$BEFORE"
 assert_equal "$(cat "$MOCK_CALLS")" ""
 
 reset_mocks
+printf '%s\n' "$LEGACY_CONFIG" > "$CONFIG"
+printf '%s\n' k3s.service > "$MOCK_UNITS"
+configure_k3s_registry_mirror "$CONFIG" true
+assert_equal "$(cat "$CONFIG")" "$EXPECTED_CONFIG"
+assert_equal "$(tail -n 1 "$MOCK_CALLS")" "restart k3s.service"
+
+reset_mocks
+printf '%s\n' "$LEGACY_CONFIG" > "$CONFIG"
+configure_k3s_registry_mirror "$CONFIG" false
+assert_equal "$(cat "$CONFIG")" "$EXPECTED_CONFIG"
+assert_equal "$(cat "$MOCK_CALLS")" ""
+
+reset_mocks
 printf 'mirrors:\n  docker.io:\n    endpoint:\n      - "https://other.example"\n' > "$CONFIG"
 BEFORE="$(cat "$CONFIG")"
 if configure_k3s_registry_mirror "$CONFIG" true 2>"$TEST_ROOT/error"; then
@@ -76,6 +96,16 @@ if configure_k3s_registry_mirror "$CONFIG" true 2>"$TEST_ROOT/error"; then
 fi
 assert_equal "$(cat "$CONFIG")" "$BEFORE"
 grep -q 'manually merge' "$TEST_ROOT/error" || fail "missing manual-merge guidance"
+assert_equal "$(cat "$MOCK_CALLS")" ""
+
+reset_mocks
+printf 'mirrors:\n  docker.io:\n    endpoint:\n      - "https://mirror.ccs.tencentyun.com"\nconfigs:\n  docker.io:\n    auth:\n      username: example\n' > "$CONFIG"
+BEFORE="$(cat "$CONFIG")"
+if configure_k3s_registry_mirror "$CONFIG" true 2>"$TEST_ROOT/error"; then
+  fail "custom config missing registry.k8s.io mirror unexpectedly succeeded"
+fi
+assert_equal "$(cat "$CONFIG")" "$BEFORE"
+grep -q 'manually merge' "$TEST_ROOT/error" || fail "missing custom-config merge guidance"
 assert_equal "$(cat "$MOCK_CALLS")" ""
 
 reset_mocks

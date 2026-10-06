@@ -19141,30 +19141,30 @@ spec:
         image: quay.io/keycloak/keycloak-operator:26.8.0
         imagePullPolicy: Always
         livenessProbe:
-          failureThreshold: 3
+          failureThreshold: 30
           httpGet:
             path: /q/health/live
             port: 8080
             scheme: HTTP
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
-          timeoutSeconds: 10
+          timeoutSeconds: 5
         name: keycloak-operator
         ports:
         - containerPort: 8080
           name: http
           protocol: TCP
         readinessProbe:
-          failureThreshold: 3
+          failureThreshold: 30
           httpGet:
             path: /q/health/ready
             port: 8080
             scheme: HTTP
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
-          timeoutSeconds: 10
+          timeoutSeconds: 5
         resources:
           limits:
             cpu: 200m
@@ -19173,14 +19173,14 @@ spec:
             cpu: 25m
             memory: 64Mi
         startupProbe:
-          failureThreshold: 3
+          failureThreshold: 60
           httpGet:
             path: /q/health/started
             port: 8080
             scheme: HTTP
-          initialDelaySeconds: 5
+          initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
-          timeoutSeconds: 10
+          timeoutSeconds: 5
       serviceAccountName: keycloak-operator
       terminationGracePeriodSeconds: 10
