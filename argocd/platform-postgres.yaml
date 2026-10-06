@@ -24,6 +24,14 @@ spec:
     - repoURL: https://github.com/geffzhang/cloudhomelab
       targetRevision: main
       ref: values
+    # SealedSecret supplying admin + keycloak DB passwords lives at
+    # apps/postgres/sealed-credentials.yaml. Without this third source
+    # ArgoCD never reconciles the SealedSecret, the Bitnami chart's
+    # `existingSecret: postgres-credentials` resolves to nothing, and
+    # Keycloak's db.password secretKeyRef stays unsatisfied.
+    - repoURL: https://github.com/geffzhang/cloudhomelab
+      targetRevision: main
+      path: apps/postgres
   destination:
     server: https://kubernetes.default.svc
     namespace: database
