@@ -1,6 +1,6 @@
 # 限制 ArgoCD 组件资源
 
-上游 ArgoCD `install.yaml` 默认不为任何组件设置 `resources.requests`/`limits`。在 1 vCPU / 4 GB 内存的节点上，一个失控的 `argocd-application-controller` 或 `argocd-repo-server` 就会把集群资源全部挤占。
+上游 ArgoCD `install.yaml` 默认不为任何组件设置 `resources.requests`/`limits`。在 2 vCPU / 4 GB 内存的节点上，一个失控的 `argocd-application-controller` 或 `argocd-repo-server` 就会把集群资源全部挤占。
 
 `bootstrap/install.sh` 在新装时会自动打补丁（`── 2b` 段落）。若集群已经跑着 ArgoCD，需要一次性应用补丁。
 
