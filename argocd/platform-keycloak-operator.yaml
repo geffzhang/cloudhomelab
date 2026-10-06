@@ -1,0 +1,27 @@
+---
+# Keycloak 26.8 Operator. Wave 0 alongside cert-manager, sealed-secrets,
+# opensandbox: the operator only ships Keycloak/RealmImport/Client CRDs and
+# its controller pod, nothing else in the cluster depends on app-layer
+# workloads. CRDs trigger the client-side `last-applied-configuration`
+# annotation limit, so ServerSideApply is required.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keycloak-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/geffzhang/cloudhomelab
+    targetRevision: main
+    path: apps/keycloak-operator
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: keycloak
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
