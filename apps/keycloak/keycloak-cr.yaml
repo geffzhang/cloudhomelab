@@ -3,7 +3,7 @@
 # fills the rest (Service, ServiceMonitor opt-in, etc.). host +
 # proxy + http.tls are the Traefik passthrough config: Traefik
 # terminates TLS, forwards plain HTTP, Keycloak trusts X-Forwarded-*.
-apiVersion: k8s.keycloak.org/v2alpha1
+apiVersion: k8s.keycloak.org/v2beta1
 kind: Keycloak
 metadata:
   name: keycloak
@@ -24,12 +24,12 @@ spec:
     host: keycloak-postgres-postgresql.database.svc.cluster.local
     port: 5432
     database: keycloak
-    username: keycloak
-    password:
-      valueFrom:
-        secretKeyRef:
-          name: postgres-credentials
-          key: keycloak-password
+    usernameSecret:
+      name: keycloak-db-username
+      key: username
+    passwordSecret:
+      name: postgres-credentials
+      key: keycloak-password
   http:
     tls:
       enabled: false
