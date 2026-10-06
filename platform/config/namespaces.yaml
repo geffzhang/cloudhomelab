@@ -86,9 +86,10 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: Prune=false
     homelab.csharpkit.com/description: >-
-      Shared platform PostgreSQL 18 (Bitnami chart). Hosts databases/users
-      consumed by platform apps; first consumer is the Keycloak `keycloak`
-      database/user.
+      Shared platform PostgreSQL service (Bitnami chart, currently PG 17.6.0;
+      see ADR-008 for the v1 deviation from the originally-planned PG 18).
+      Hosts databases/users consumed by platform apps; first consumer is
+      the Keycloak `keycloak` database/user.
   labels:
     app.kubernetes.io/part-of: homelab
 ---
