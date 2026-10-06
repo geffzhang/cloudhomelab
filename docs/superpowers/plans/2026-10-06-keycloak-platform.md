@@ -426,7 +426,7 @@ spec:
 # 已在 Step 1 写入占位版本；按实际 helm search 输出替换（当前 latest 18.12.4）
 ```
 
-> 实际执行时 helm search 输出 `bitnami/postgresql 18.12.4 18.6.0`，即 pin `targetRevision: 18.12.4`。chart 18.x 系列从 Bitnami chart 重编号开始同时应用 PG 18，不再有 16.x 适配 PG 18 的旧组合。
+> 实际执行时 helm search 输出 `bitnami/postgresql 18.12.4 18.6.0`，但 Docker Hub OCI registry（`registry-1.docker.io`，chart 18.x 唯一可发区域）在本机不通。回退到 main 分支上 chart 17.1.2（PG 17.6.0），符合 Keycloak 26.x 兼容矩阵。chart targetRevision 改为 17.1.2；image tag 不再 override（用 chart 默认 17.6.0）。升级到 PG 18 留作后续 PR，要求 deploy 环境能访问 `registry-1.docker.io`。
 
 - [ ] **Step 3：YAML 结构验证**
 

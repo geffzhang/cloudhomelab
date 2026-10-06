@@ -1,0 +1,25 @@
+# platform/postgres/values.yaml
+# Bitnami postgresql chart 17.1.2 ships PostgreSQL 17.6.0 (chart
+# 18.x is OCI-only and unreachable from this dev environment; PG 17
+# is supported by Keycloak 26.x). Single primary, no replication.
+# SealedSecret supplies the admin + application passwords
+# (apps/postgres/sealed-credentials.yaml).
+global:
+  postgresql:
+    auth:
+      existingSecret: postgres-credentials
+      secretKeys:
+        adminPasswordKey: admin-password
+        userPasswordKey: keycloak-password
+      username: keycloak
+      database: keycloak
+      enablePostgresUser: true
+primary:
+  persistence:
+    size: 1Gi
+    storageClass: local-path
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits:   { cpu: 250m, memory: 384Mi }
+metrics:
+  enabled: false
