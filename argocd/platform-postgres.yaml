@@ -16,7 +16,7 @@ spec:
   sources:
     - repoURL: https://charts.bitnami.com/bitnami
       chart: postgresql
-      targetRevision: 17.1.2
+      targetRevision: 16.7.27
       helm:
         releaseName: keycloak-postgres
         valueFiles:

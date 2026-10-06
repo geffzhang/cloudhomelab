@@ -9,7 +9,7 @@ Keycloak 26.8 + 平台 PostgreSQL 分三个同步波次，由 ArgoCD 通过 `app
 | 波次 | Application | 源目录 | 内容 |
 |------|-------------|--------|---------|
 | 0 | `keycloak-operator` | `apps/keycloak-operator/` | Keycloak Operator 26.8.0 + 4 个 CRD（`keycloaks.keycloak.org/v2alpha1`、`keycloakrealmimports`、`keycloakoidcclients`、`keycloaksamlclients`）|
-| 1 | `platform-postgres` | `apps/postgres/` + `platform/postgres/` | Bitnami Helm chart 17.1.2（PG 17.6.0），`releaseName: keycloak-postgres` |
+| 1 | `platform-postgres` | `apps/postgres/` + `platform/postgres/` | Bitnami Helm chart 16.7.27（PG 17.6.0），`releaseName: keycloak-postgres` |
 | 2 | `keycloak` | `apps/keycloak/` | `Keycloak` CR、`KeycloakRealmImport`、`Ingress`、`SealedSecret homelab-secrets` |
 
 `apps/keycloak/keycloak-cr.yaml` 的 `db.host` 指向 `keycloak-postgres-postgresql.database.svc.cluster.local`（Bitnami chart 在 `releaseName` 后追加 `-postgresql`）。PostgreSQL 管理员/Keycloak 用户密码由 `apps/postgres/sealed-credentials.yaml` 中的 SealedSecret `postgres-credentials` 提供，Keycloak realm 凭据由 `apps/keycloak/sealed-secrets.yaml` 中的 `homelab-secrets` 提供。
@@ -133,7 +133,7 @@ curl --fail https://keycloak.lab.csharpkit.com/realms/homelab/.well-known/openid
 
 ### PostgreSQL
 
-Bitnami chart 17.1.2 锁住 PG 17.6.0。升级到 chart 18.x（PG 18）需要：
+Bitnami chart 16.7.27 锁住 PG 17.6.0。升级到 chart 18.x（PG 18）需要：
 
 1. 在本地跑 `helm dependency build platform/postgres/` 更新 `charts/`。
 2. 修改 `platform/postgres/values.yaml` 的 `image.tag` 与 `auth.database.majorVersion`。
@@ -185,4 +185,4 @@ PostgreSQL 密码更新后，Keycloak 也必须重启——它的连接池在启
 
 - 仅交付 Keycloak 平台，**ArgoCD / Grafana / 9Router / OpenSandbox 接入 OIDC 留到各自 PR**。
 - Keycloak 升级时 operator 26.8.0 可能需要显式 `spec.image` 字段；目前依赖 chart 默认镜像版本（`quay.io/keycloak/keycloak:26.8.0`），跟 operator 同号。
-- Bitnami chart 17.1.2 钉的是 PG 17.6.0，**不是原计划的 PG 18**——chart 18.x OCI 仓库在当前网络下不可达（详见 [ADR-008](../adr/008-keycloak-platform.md#备选方案)）。
+- Bitnami chart 16.7.27 钉的是 PG 17.6.0，**不是原计划的 PG 18**——chart 18.x OCI 仓库在当前网络下不可达（详见 [ADR-008](../adr/008-keycloak-platform.md#备选方案)）。

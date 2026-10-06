@@ -1,5 +1,5 @@
 # platform/postgres/values.yaml
-# Bitnami postgresql chart 17.1.2 ships PostgreSQL 17.6.0 (chart
+# Bitnami postgresql chart 16.7.27 ships PostgreSQL 17.6.0 (chart
 # 18.x is OCI-only and unreachable from this dev environment; PG 17
 # is supported by Keycloak 26.x). Single primary, no replication.
 # SealedSecret supplies the admin + application passwords

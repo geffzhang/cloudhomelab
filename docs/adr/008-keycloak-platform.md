@@ -47,7 +47,7 @@ PG 版本钉在 Keycloak 26.x 的兼容窗口内（PG 14+）；主版本 14 / 15
 sources:
   - repoURL: https://charts.bitnami.com/bitnami
     chart: postgresql
-    targetRevision: 17.1.2  # Bitnami chart 17.1.2 ships PG 17.6.0
+    targetRevision: 16.7.27  # Bitnami chart 16.7.27 ships PG 17.6.0
     helm:
       releaseName: keycloak-postgres
       valueFiles: [$values/platform/postgres/values.yaml]
@@ -98,7 +98,7 @@ Bitnami chart 通过 `global.postgresql.auth.existingSecret: postgres-credential
 - **外部托管 PG（COS PG / 腾讯云）**：增加成本与外部 token 管理（Crossplane Secret 同步）。拒绝：家庭实验室小规模，自托管更简单
 - **每个应用自带 PG StatefulSet**：运维扩散，备份/升级分散。拒绝：与本决策相反
 - **CNPG / Zalando Postgres Operator**：增加 CRD 层 + 更复杂部署。拒绝：单节点 + 单实例不需要
-- **Bitnami chart 18.x（PG 18）**：原计划。`helm pull bitnami/postgresql --version 18.12.4` 在当前网络下返回 `dial tcp [2a03:2880:f131:83:face:b00c:0:25de]:443: i/o timeout`——chart 18.x 系列**仅以 OCI registry 形式分发**，而本环境对 `charts.bitnami.com` OCI endpoint IPv6 路由不可达。回退到 chart 17.1.2（PG 17.6.0）；PG 17 仍满足 Keycloak 26.x 兼容性（PG 14+），不影响功能。详见 [`docs/operations/adding-keycloak.md`](../operations/adding-keycloak.md#已知遗留项) 与 `apps/postgres/sealed-credentials.yaml`
+- **Bitnami chart 18.x（PG 18）**：原计划。`helm pull bitnami/postgresql --version 18.12.4` 在当前网络下返回 `dial tcp [2a03:2880:f131:83:face:b00c:0:25de]:443: i/o timeout`——chart 18.x 系列**仅以 OCI registry 形式分发**，而本环境对 `charts.bitnami.com` OCI endpoint IPv6 路由不可达。回退到 chart 16.7.27（PG 17.6.0）；PG 17 仍满足 Keycloak 26.x 兼容性（PG 14+），不影响功能。详见 [`docs/operations/adding-keycloak.md`](../operations/adding-keycloak.md#已知遗留项) 与 `apps/postgres/sealed-credentials.yaml`
 
 ## 后果
 
