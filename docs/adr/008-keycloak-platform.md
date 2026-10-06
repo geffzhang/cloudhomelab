@@ -1,4 +1,4 @@
-# ADR-008：引入 PostgreSQL 18 作为平台共享数据库组件
+# ADR-008：引入 PostgreSQL 作为平台共享数据库组件
 
 **状态：** 已接受 · **日期：** 2026-10-06
 
@@ -14,15 +14,15 @@
 
 所有持久化均为应用专有本地存储，没有任何**共享数据库**层。引入 Keycloak 26.8 作为 OIDC 服务（参见 [ADR-009](009-keycloak-platform.md)）是首个真正需要关系型数据库的应用，未来 OpenSandbox 状态持久化、9Router 多用户化、监控栈长期指标存储（Thanos / Cortex / Loki）等场景都需要数据库。
 
-为避免「每个需要 DB 的应用都自带 PG」的运维扩散，需要在 wave 1 引入**独立平台 PostgreSQL 18 组件**，由 ArgoCD 多源 Helm 模式管理，凭证按命名空间分发。
+为避免「每个需要 DB 的应用都自带 PG」的运维扩散，需要在 wave 1 引入**独立平台 PostgreSQL 组件**，由 ArgoCD 多源 Helm 模式管理，凭证按命名空间分发。
 
 ## 决策
 
 ### 独立平台组件而非 Keycloak 附属
 
-PostgreSQL 18 与 Keycloak 26.8 解耦：
+PostgreSQL 与 Keycloak 26.8 解耦：
 
-- `database` 命名空间跑 PostgreSQL 18，由 `platform-postgres` Application 管理（wave 1）
+- `database` 命名空间跑 PostgreSQL，由 `platform-postgres` Application 管理（wave 1）
 - `keycloak` 命名空间跑 Keycloak 26.8，由 `platform-keycloak` Application 管理（wave 2）
 - Keycloak CR 通过跨命名空间 `secretKeyRef` 引用 `postgres-credentials` SealedSecret
 
@@ -32,10 +32,12 @@ PostgreSQL 18 与 Keycloak 26.8 解耦：
 2. **运维清晰**：PG 升级、备份、调参与 Keycloak 解耦
 3. **资源隔离**：PG 与 Keycloak 独立 `requests/limits`，便于 `kubectl top` / Grafana 面板分项监控
 
-### PostgreSQL 18（最新主版本）
+### PostgreSQL 主版本
 
-- Keycloak 26.5+ 已放弃 PG 13（2025-11 EOL），需 PG 14+；PG 18 是当前最新稳定主版本
-- Bitnami postgresql chart 16.x 系列支持 PG 18（chart 与 PG 版本不一定相同）
+- Keycloak 26.5+ 已放弃 PG 13（2025-11 EOL），需 PG 14+
+- **目标：PG 18**（当前最新稳定主版本）；**v1 实际落地：PG 17.6.0**（见下方"备选方案"Bitnami chart OCI 不可达）
+
+PG 版本钉在 Keycloak 26.x 的兼容窗口内（PG 14+）；主版本 14 / 15 / 16 / 17 / 18 都满足 Keycloak 26.x 要求，**当前部署选 17.6.0 是工程妥协**——计划升级到 18 时主要工作是 Bitnami chart 升 17→18（PG 17 → 18 大版本升级需要 `pg_upgrade`，详见 Bitnami chart README）。
 
 ### Bitnami Helm chart + 多源 ArgoCD Application
 
@@ -45,7 +47,7 @@ PostgreSQL 18 与 Keycloak 26.8 解耦：
 sources:
   - repoURL: https://charts.bitnami.com/bitnami
     chart: postgresql
-    targetRevision: 16.x.x  # pin to specific 16.x supporting PG 18
+    targetRevision: 17.1.2  # Bitnami chart 17.1.2 ships PG 17.6.0
     helm:
       releaseName: keycloak-postgres
       valueFiles: [$values/platform/postgres/values.yaml]
@@ -96,6 +98,7 @@ Bitnami chart 通过 `global.postgresql.auth.existingSecret: postgres-credential
 - **外部托管 PG（COS PG / 腾讯云）**：增加成本与外部 token 管理（Crossplane Secret 同步）。拒绝：家庭实验室小规模，自托管更简单
 - **每个应用自带 PG StatefulSet**：运维扩散，备份/升级分散。拒绝：与本决策相反
 - **CNPG / Zalando Postgres Operator**：增加 CRD 层 + 更复杂部署。拒绝：单节点 + 单实例不需要
+- **Bitnami chart 18.x（PG 18）**：原计划。`helm pull bitnami/postgresql --version 18.12.4` 在当前网络下返回 `dial tcp [2a03:2880:f131:83:face:b00c:0:25de]:443: i/o timeout`——chart 18.x 系列**仅以 OCI registry 形式分发**，而本环境对 `charts.bitnami.com` OCI endpoint IPv6 路由不可达。回退到 chart 17.1.2（PG 17.6.0）；PG 17 仍满足 Keycloak 26.x 兼容性（PG 14+），不影响功能。详见 [`docs/operations/adding-keycloak.md`](../operations/adding-keycloak.md#已知遗留项) 与 `apps/postgres/sealed-credentials.yaml`
 
 ## 后果
 

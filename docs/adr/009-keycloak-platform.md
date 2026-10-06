@@ -11,7 +11,7 @@
 - ArgoCD：当前无 SSO，bootstrap 中显式 `argocd-dex-server --replicas=0`，注释 "no dex, no SSO needed"
 - OpenSandbox：API key（同 9Router 模式）
 
-引入 Keycloak 把「身份」从「每个应用自己一套」统一为「一个 realm、一套用户、各应用 OIDC 客户端」。PostgreSQL 18 作为独立平台数据库组件，参见 [ADR-008](008-keycloak-platform.md)。
+引入 Keycloak 把「身份」从「每个应用自己一套」统一为「一个 realm、一套用户、各应用 OIDC 客户端」。PostgreSQL 作为独立平台数据库组件，参见 [ADR-008](008-keycloak-platform.md)。
 
 ## 决策
 
@@ -21,9 +21,11 @@ Keycloak 26.x 上游**不发布官方 Helm chart**。可选 codecentric/keycloak
 
 本仓库选 Operator 模式：
 
-1. 克隆 `keycloak/keycloak-k8s-resources` 上游仓库，`git checkout` 钉到 26.8 tag
-2. `helm template keycloak-operator kubernetes/charts/keycloak-operator --include-crds` 渲染至 `apps/keycloak-operator/operator.yaml`
+1. 下载 `keycloak/keycloak-k8s-resources` 上游仓库 tarball（tag `26.8.0`）
+2. `kubectl kustomize homelab-patch/`（含 `resources: [../kubernetes]` + operator Deployment 资源 patch）渲染至 `apps/keycloak-operator/operator.yaml`
 3. ArgoCD Application `keycloak-operator`（wave 0，`ServerSideApply=true`）管理
+
+> **注：** 上游 26.8.0 仅以 Kustomize 形式分发 operator 资源（`kubernetes/` 目录），**没有 Helm chart**。`helm template` 命令被否决——这是相对于早期探索中曾被列为方案的修订。
 
 理由：
 
@@ -36,7 +38,7 @@ Keycloak 26.x 上游**不发布官方 Helm chart**。可选 codecentric/keycloak
 | 波次 | Application | 关键资源 |
 |------|-------------|----------|
 | 0 | **keycloak-operator**（新增） | operator Deployment + CRDs |
-| 1 | platform-config、monitoring、**platform-postgres**（参见 [ADR-008](008-keycloak-platform.md)） | PostgreSQL 18 |
+| 1 | platform-config、monitoring、**platform-postgres**（参见 [ADR-008](008-keycloak-platform.md)） | PostgreSQL（v1 实际 PG 17.6.0，详见 ADR-008 备选方案） |
 | 2 | 9router、**keycloak**（新增） | Keycloak CR + RealmImport CR + Ingress |
 
 **wave 0 给 operator**：与 OpenSandbox 同推理，operator 仅提供 CRD 与 controller pod，不依赖任何应用层资源。
@@ -107,7 +109,7 @@ RealmImport CR 的 `users[].credentials[].valueFrom.secretKeyRef` 与 `clients[]
 | keycloak-operator | 25m / 64Mi | 200m / 256Mi |
 | keycloak StatefulSet | 200m / 384Mi | 500m / 768Mi |
 
-合计 ~225m / 448Mi。叠加 [ADR-008](008-keycloak-platform.md) 的 PG（50m / 128Mi requests）、OpenSandbox（~210m / 448Mi）、ArgoCD（~291m / 768Mi）总请求约 776m / 1.78Gi；监控栈 Prometheus + Grafana（~500m-1Gi）与 9Router 仍在余量内。
+合计 ~225m / 448Mi。叠加 [ADR-008](008-keycloak-platform.md) 的 PostgreSQL（50m / 128Mi requests）、OpenSandbox（~210m / 448Mi）、ArgoCD（~291m / 768Mi）总请求约 776m / 1.78Gi；监控栈 Prometheus + Grafana（~500m-1Gi）与 9Router 仍在余量内。
 
 ### 两段 commit 部署（沿用 OpenSandbox 模式）
 
