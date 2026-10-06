@@ -824,7 +824,7 @@ git commit -m "feat(argocd): add keycloak Application (wave 2)"
 ```markdown
 # 添加 Keycloak 26.8 平台
 
-部署、密钥封印、升级与故障排查手册。设计决策与备选方案见 [ADR-008](../adr/008-keycloak-platform.md)。
+部署、密钥封印、升级与故障排查手册。设计决策与备选方案见 [ADR-008](../adr/008-keycloak-platform.md)（PostgreSQL 18 平台组件）与 [ADR-009](../adr/009-keycloak-platform.md)（Keycloak 26.8 OIDC 服务）。
 
 ## 已部署组件
 
@@ -942,10 +942,10 @@ ArgoCD UI 中 `keycloak`、`keycloak-operator`、`platform-postgres` 三个 Appl
 
 ```bash
 cd e:/GitHub/cloudhomelab
-grep -n 'ADR-008\|adding-keycloak' docs/operations/adding-keycloak.md
+grep -n 'ADR-008\|ADR-009\|adding-keycloak' docs/operations/adding-keycloak.md
 ```
 
-期望：开头一段引用 `ADR-008`，文件名一致。
+期望：开头一段引用 `ADR-008` 与 `ADR-009`，文件名一致。
 
 - [ ] **Step 3：提交**
 
@@ -956,70 +956,74 @@ git commit -m "docs: add adding-keycloak.md runbook"
 
 ---
 
-### Task 13：ADR-008
+### Task 13：ADR-008 PostgreSQL 18
 
 **文件：**
 - 创建：`docs/adr/008-keycloak-platform.md`
 
-**目的：** 把关键设计决策落到 ADR，参考 ADR-007 写法。
+**目的：** 把 PostgreSQL 18 平台组件决策单独落到 ADR-008（与 Keycloak 解耦）。
 
-- [ ] **Step 1：写入 ADR**
+- [ ] **Step 1：写入 ADR-008**
+
+参考 [docs/adr/008-keycloak-platform.md](../../adr/008-keycloak-platform.md)（已 commit `40d48c0`），按当前实现覆写本地文件保持同步：
 
 ```markdown
-# ADR-008：引入 Keycloak 26.8 作为平台 OIDC 认证服务
+# ADR-008：引入 PostgreSQL 18 作为平台共享数据库组件
 
 **状态：** 已接受 · **日期：** 2026-10-06
 
 ## 背景
 
-集群当前没有 OIDC：9Router 用 PVC 上的 API key、Grafana 用密封 Secret 的 admin 账号、ArgoCD `dex --replicas=0` 关闭 SSO、OpenSandbox 同 9Router。引入 Keycloak 把身份层从「每个应用一套」变为「一个 realm、统一用户库、各应用 OIDC 客户端」。详见 [设计文档](../superpowers/specs/2026-10-06-keycloak-platform-design.md)。
+家庭实验室当前为单租户自托管平台：9Router（AI 网关）、OpenSandbox（沙箱控制平面）、ArgoCD（GitOps）、Grafana（监控）、sandbox API。持久化现状均为应用专有本地存储（9Router PVC 存 API key、OpenSandbox registry PVC 存 OCI 快照等），无任何共享数据库层。引入 Keycloak 26.8 作为 OIDC 服务（参见 ADR-009）是首个真正需要关系型数据库的应用。
 
 ## 决策
 
-### Keycloak Operator 模式
+### 独立平台组件而非 Keycloak 附属
 
-Keycloak 26.x 上游不发布官方 Helm chart。可选 codecentric/keycloakx（社区 Helm）、Bitnami chart（社区维护 Bitnami 镜像），均为社区产物。Keycloak 官方推荐路径是 Keycloak Operator + `Keycloak` / `KeycloakRealmImport` CR。本仓库选 Operator 模式，与 OpenSandbox 同步（渲染上游 chart 源、`ServerSideApply=true` 走 CRD）。
+`database` 命名空间跑 PostgreSQL 18（`platform-postgres` Application，wave 1），与 `keycloak` 命名空间解耦。Keycloak CR 通过跨命名空间 `secretKeyRef` 引用 `postgres-credentials` SealedSecret。理由：
 
-### 独立 PostgreSQL 18 平台组件
+1. **未来扩展**：OpenSandbox 状态持久化、9Router 多用户化、监控栈长期存储（Thanos / Cortex / Loki）等场景可共用
+2. **运维清晰**：PG 升级、备份、调参与 Keycloak 解耦
+3. **资源隔离**：PG 与 Keycloak 独立 `requests/limits`
 
-Keycloak 必须持久化用户/会话/客户端，而 PostgreSQL 是通用家庭基础设施扩展。选 Bitnami postgresql chart 16.x 作独立 platform-postgres Application，命名空间 `database`，凭证按命名空间分发。未来 OpenSandbox / 9Router / 监控栈需要数据库时直接共用同一集群。
+### PostgreSQL 18（最新主版本）
 
-### 同步波次
+- Keycloak 26.5+ 已放弃 PG 13（2025-11 EOL），需 PG 14+
+- PG 18 是当前最新稳定主版本
 
-- **wave 0**：keycloak-operator（仅 CRD + controller，与 OpenSandbox 同款推理）
-- **wave 1**：platform-postgres（Bitnami Helm chart）
-- **wave 2**：keycloak（Keycloak CR + RealmImport + Ingress；严格依赖 wave 1 的 PostgreSQL Ready）
+### Bitnami Helm chart + 多源 ArgoCD Application
+
+模式与 `platform-monitoring.yaml`、`platform-logging.yaml` 完全一致；`releaseName: keycloak-postgres` 固定 Service FQDN `keycloak-postgres.database.svc.cluster.local` 以供 Keycloak CR `db.host` 引用。
+
+### SealedSecret 单源
+
+`database` 命名空间下 `postgres-credentials` SealedSecret 收纳两个 key：`admin-password`（postgres 超级用户）、`keycloak-password`（首个应用用户）。Bitnami chart 通过 `existingSecret` + `secretKeys.adminPasswordKey/userPasswordKey` 同时读两个 key。Keycloak CR 通过 `db.password.valueFrom.secretKeyRef` 跨命名空间读 `keycloak-password`。
+
+### 单节点 + local-path 存储
+
+`primary.persistence.storageClass: local-path`（k3s 内置）。多节点扩展留作未来，需迁移到分布式存储（Longhorn / Rook-Ceph）。
 
 ### 资源精简
 
 | 组件 | requests | limits |
 |------|----------|--------|
-| keycloak-operator | 25m / 64Mi | 200m / 256Mi |
-| keycloak StatefulSet | 200m / 384Mi | 500m / 768Mi |
 | postgres Bitnami primary | 50m / 128Mi | 250m / 384Mi |
 
-合计 275m / 576Mi，新增叠加后总请求约 776m / 1.78Gi（参见 [spec](../superpowers/specs/2026-10-06-keycloak-platform-design.md#资源2-vcpu--4-gb-节点预算)）。
+### 备选方案
 
-### SealedSecret 单源
-
-`database` 命名空间的 `postgres-credentials` 同时被 Bitnami chart 与 Keycloak CR 通过 `existingSecret` / `secretKeyRef` 读取；`keycloak` 命名空间的 `homelab-secrets` 收纳 admin + 4 client secret。轮换路径：重新生成 → 重新 `kubeseal` → 推送；Bitnami 检测 `existingSecret` 变化自动滚动；Keycloak 通过 `secretKeyRef` 自动取新值。
-
-### 两段 commit 部署
-
-PR 1 提交所有清单（SealedSecret 仅元数据）；PR 2 由用户在能访问集群的机器上 `k3s kubectl create secret --dry-run` + `kubeseal` 写回两个 SealedSecret。沿用 OpenSandbox `opensandbox-api-key` 模式。
-
-### Traefik + cert-manager 复用
-
-公网入口 `keycloak.lab.csharpkit.com` 与 9router / argo / grafana / sandbox 同 Traefik + cert-manager HTTP-01 体系，无需新增 ingress controller 或新 ClusterIssuer。Keycloak CR `hostname.strict=false` + `proxy.edgeHeaders=true` 让 Traefik 终止 TLS 后转发明文，Keycloak 信任 `X-Forwarded-*`。
+- **PG 嵌在 Keycloak chart 子表**：codecentric/keycloakx chart 可选 bundled PG。拒绝：平台组件应独立
+- **外部托管 PG（COS PG / 腾讯云）**：增加成本与外部 token 管理。拒绝：自托管更简单
+- **每个应用自带 PG StatefulSet**：运维扩散。拒绝：与本决策相反
+- **CNPG / Zalando Postgres Operator**：增加 CRD 层 + 更复杂部署。拒绝：单节点 + 单实例不需要
 
 ## 后果
 
-- **明文 secret 仅在内存**：所有 7 个 secret 在 PR 2 生成时只在 shell 变量中存在，`unset HISTFILE` + `unset <VAR>` 防泄漏；不写 `/tmp` 临时文件。
-- **跨命名空间 secretKeyRef**：Keycloak operator 默认 ClusterRole 含 cluster-wide `secrets get`，可跨 ns 读 `postgres-credentials`；若 RBAC 受限，回退为在 `keycloak` 命名空间放一份 SealedSecret 副本。
-- **v1 仅交付 Keycloak 平台**：ArgoCD / Grafana / 9Router / OpenSandbox 的 OIDC 接入各开独立 PR，本仓库 `apps/9router/deployment.yaml` 等文件不修改。
-- **单副本 Keycloak**：滚动更新期间短暂不可用；多副本 + Infinispan 留作多节点扩展时。
-- **依赖 Bitnami chart 维护活跃度**：Bitnami chart 维护暂停或 breaking change 时需切换其他 PG chart；operator 与 PG 解耦，切换代价可控。
-- **本仓库绑定 Keycloak 26.x 升级路径**：升级到 26.x 大版本需重新 helm template，可能涉及 CRD 升级、operator API 变更。
+- **首个消费者是 Keycloak**：首个数据库 `keycloak` + 用户 `keycloak`，由 `keycloak-password` SealedSecret 收纳
+- **凭证命名空间分发**：Bitnami chart 在 `database` 命名空间，Keycloak CR 跨命名空间 `secretKeyRef`；要求 Keycloak operator 默认 ClusterRole 含 cluster-wide `secrets get`；若 RBAC 受限，回退为在 `keycloak` 命名空间放一份 SealedSecret 副本
+- **备份策略**：v1 不引入 PG 自动备份；夜间手动 `pg_dump` + COS 推送留作未来
+- **多节点扩展**：local-path 不支持多节点；PG StatefulSet 需重建并迁数据
+- **本仓库绑定 Bitnami chart 版本**：升级 chart 版本需对照 Bitnami release notes 检查 values 字段变化
+- **共享资源命名冲突**：未来多应用共用同一 PG cluster，user/database 命名必须显式约定（推荐 `<app-name>` 前缀）
 ```
 
 - [ ] **Step 2：交叉引用**
@@ -1027,16 +1031,133 @@ PR 1 提交所有清单（SealedSecret 仅元数据）；PR 2 由用户在能访
 ```bash
 cd e:/GitHub/cloudhomelab
 ls docs/adr/008-keycloak-platform.md
-ls docs/superpowers/specs/2026-10-06-keycloak-platform-design.md
 ```
 
-期望：两文件均存在。
+期望：文件存在。
 
 - [ ] **Step 3：提交**
 
 ```bash
 git add docs/adr/008-keycloak-platform.md
-git commit -m "docs: ADR-008 keycloak platform decision"
+git commit -m "docs: ADR-008 PostgreSQL 18 platform component decision"
+```
+
+---
+
+### Task 14：ADR-009 Keycloak 26.8
+
+**文件：**
+- 创建：`docs/adr/009-keycloak-platform.md`
+
+**目的：** 把 Keycloak 26.8 OIDC 决策落到 ADR-009（与 PostgreSQL 18 解耦）。
+
+- [ ] **Step 1：写入 ADR-009**
+
+参考 [docs/adr/009-keycloak-platform.md](../../adr/009-keycloak-platform.md)（已 commit `40d48c0`），按当前实现覆写本地文件保持同步：
+
+```markdown
+# ADR-009：引入 Keycloak 26.8 作为平台 OIDC 认证服务
+
+**状态：** 已接受 · **日期：** 2026-10-06
+
+## 背景
+
+家庭实验室当前为单租户自托管平台：9Router（AI 网关）、OpenSandbox（沙箱控制平面）、ArgoCD（GitOps）、Grafana（监控）、sandbox API。各自登录方式不统一：9Router 用 PVC 上的 API key、Grafana 用密封 Secret 的 admin 账号、ArgoCD `dex --replicas=0` 关闭 SSO、OpenSandbox 同 9Router。引入 Keycloak 把身份层从「每个应用一套」变为「一个 realm、统一用户库、各应用 OIDC 客户端」。PostgreSQL 18 作为独立平台数据库组件，参见 ADR-008。
+
+## 决策
+
+### Keycloak Operator 模式（与 OpenSandbox 同款）
+
+Keycloak 26.x 上游不发布官方 Helm chart。可选 codecentric/keycloakx（社区 Helm）、Bitnami chart（社区维护 Bitnami 镜像），均为社区产物。Keycloak 官方推荐路径是 Keycloak Operator + `Keycloak` / `KeycloakRealmImport` CR。本仓库选 Operator 模式：
+
+1. 克隆 `keycloak/keycloak-k8s-resources` 上游仓库，`git checkout` 钉到 26.8 tag
+2. `helm template keycloak-operator kubernetes/charts/keycloak-operator --include-crds` 渲染至 `apps/keycloak-operator/operator.yaml`
+3. ArgoCD Application `keycloak-operator`（wave 0，`ServerSideApply=true`）管理
+
+理由：官方维护路径、CRD 集中、复用 OpenSandbox 套路（参见 ADR-007）。
+
+### 同步波次
+
+| 波次 | Application | 关键资源 |
+|------|-------------|----------|
+| 0 | keycloak-operator（新增） | operator Deployment + CRDs |
+| 1 | platform-config、monitoring、platform-postgres（参见 ADR-008） | PostgreSQL 18 |
+| 2 | 9router、keycloak（新增） | Keycloak CR + RealmImport CR + Ingress |
+
+wave 0 给 operator（与 OpenSandbox 同推理），wave 2 给 Keycloak（让 PG 依赖显式化）。
+
+### 单 realm「homelab」
+
+- **单 realm 而非多 realm**：跨应用共用一套用户库
+- **`homelab-admin`**：唯一 admin，role `realm-admin`
+- **`registrationAllowed: false`**：关闭自注册
+- **`sslRequired: external`**：所有认证流强制 HTTPS
+- **`directAccessGrantsEnabled: false`**：四个客户端仅 Authorization Code 流程
+
+### 四个 OIDC 客户端（GitOps 一次性导入）
+
+| Client ID | Redirect URI | 接入 PR |
+|------------|-------------------|--------|
+| `argocd` | `https://argo.lab.csharpkit.com/auth/callback` | 另开 PR |
+| `grafana` | `https://grafana.lab.csharpkit.com/login/generic_oauth` | 另开 PR |
+| `9router` | `https://9router.lab.csharpkit.com/auth/callback` | 另开 PR |
+| `opensandbox` | `https://sandbox.lab.csharpkit.com/auth/callback` | 另开 PR |
+
+所有客户端均为 confidential（持有 secret）、standardFlowEnabled、directAccessGrantsEnabled=false。
+
+### Traefik + cert-manager 复用
+
+公网入口 `keycloak.lab.csharpkit.com` 与 9router / argo / grafana / sandbox 同 Traefik + cert-manager HTTP-01 体系（参见 ADR-004、ADR-005）。Keycloak CR 三层信任：realm 级 `sslRequired: external` + operator 级 `strict: false` + 代理级 `edgeHeaders: true`。
+
+### SealedSecret 单源
+
+`keycloak` 命名空间下 `homelab-secrets` SealedSecret 收纳五个 key：`admin-password`、`argocd-client-secret`、`grafana-client-secret`、`9router-client-secret`、`opensandbox-client-secret`。RealmImport CR 的 `users[].credentials[].valueFrom.secretKeyRef` 与 `clients[].secret.valueFrom.secretKeyRef` 引用同一份 Secret。
+
+### 资源精简
+
+| 组件 | requests | limits |
+|------|----------|--------|
+| keycloak-operator | 25m / 64Mi | 200m / 256Mi |
+| keycloak StatefulSet | 200m / 384Mi | 500m / 768Mi |
+
+合计 ~225m / 448Mi。
+
+### 两段 commit 部署（沿用 OpenSandbox 模式）
+
+PR 1 提交所有清单（SealedSecret 仅元数据）；PR 2 由用户在能访问集群的机器上 `k3s kubectl create secret --dry-run` + `kubeseal` 写回两个 SealedSecret。完整步骤参见 `docs/operations/adding-keycloak.md`。
+
+### 备选方案
+
+- **codecentric/keycloakx Helm chart**：社区维护，与上游官方建议不符。拒绝
+- **Bitnami Keycloak chart**：Bitnami 打包镜像，与平台其他 chart 风格不一致。拒绝
+- **多 realm 拆分**：用户管理膨胀。拒绝
+- **ArgoCD 同时接入 Keycloak**：v1 仅交付 Keycloak 平台；argo.lab 走 Keycloak 登录另开 PR
+- **多副本 + Infinispan 集群**：单节点无 KVM 不需要
+- **裸 Meta API Keycloak**：违背 GitOps
+
+## 后果
+
+- **明文 secret 仅在内存**：所有 7 个 secret 在 PR 2 生成时只在 shell 变量中存在，`unset HISTFILE` + `unset <VAR>` 防泄漏
+- **跨命名空间 secretKeyRef**：Keycloak operator 默认 ClusterRole 含 cluster-wide `secrets get`，可跨 ns 读 `postgres-credentials`
+- **v1 仅交付 Keycloak 平台**：ArgoCD / Grafana / 9Router / OpenSandbox 的 OIDC 接入各开独立 PR
+- **单副本 Keycloak**：滚动更新期间短暂不可用
+- **依赖 Keycloak Operator API 演进**：本仓库绑定 Keycloak 26.x 升级路径
+```
+
+- [ ] **Step 2：交叉引用**
+
+```bash
+cd e:/GitHub/cloudhomelab
+ls docs/adr/009-keycloak-platform.md
+```
+
+期望：文件存在。
+
+- [ ] **Step 3：提交**
+
+```bash
+git add docs/adr/009-keycloak-platform.md
+git commit -m "docs: ADR-009 Keycloak 26.8 OIDC provider decision"
 ```
 
 ---
