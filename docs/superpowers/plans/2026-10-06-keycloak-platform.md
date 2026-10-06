@@ -315,7 +315,7 @@ git commit -m "feat(postgres): add postgres-credentials SealedSecret placeholder
 global:
   postgresql:
     image:
-      tag: 18.0.0
+      tag: 18.6.0
     auth:
       existingSecret: postgres-credentials
       secretKeys:
@@ -402,7 +402,7 @@ spec:
   sources:
     - repoURL: https://charts.bitnami.com/bitnami
       chart: postgresql
-      targetRevision: 16.7.4 # TODO: pin to actual latest 16.x after chart release check
+      targetRevision: 18.12.4
       helm:
         releaseName: keycloak-postgres
         valueFiles:
@@ -423,8 +423,10 @@ spec:
 - [ ] **Step 2：把 `targetRevision` 改成 Task 5 Step 2 实际拿到的版本**
 
 ```bash
-# 已在 Step 1 写入占位版本；按实际 helm search 输出替换 16.7.4
+# 已在 Step 1 写入占位版本；按实际 helm search 输出替换（当前 latest 18.12.4）
 ```
+
+> 实际执行时 helm search 输出 `bitnami/postgresql 18.12.4 18.6.0`，即 pin `targetRevision: 18.12.4`。chart 18.x 系列从 Bitnami chart 重编号开始同时应用 PG 18，不再有 16.x 适配 PG 18 的旧组合。
 
 - [ ] **Step 3：YAML 结构验证**
 
