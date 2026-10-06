@@ -78,3 +78,29 @@ metadata:
       default (matches the chart's [kubernetes].namespace default).
   labels:
     app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: database
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      Shared platform PostgreSQL 18 (Bitnami chart). Hosts databases/users
+      consumed by platform apps; first consumer is the Keycloak `keycloak`
+      database/user.
+  labels:
+    app.kubernetes.io/part-of: homelab
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+    homelab.csharpkit.com/description: >-
+      Keycloak 26.8 OIDC identity provider (operator-managed). Hosts the
+      Keycloak server StatefulSet and the `homelab` realm import. Public
+      admin console at keycloak.lab.csharpkit.com.
+  labels:
+    app.kubernetes.io/part-of: homelab
