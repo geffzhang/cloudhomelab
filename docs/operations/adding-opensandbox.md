@@ -14,17 +14,21 @@ OpenSandbox 1.1 部署在同步波次 0，源目录 `apps/opensandbox/`，由 Ar
 | `gateway.yaml` | `opensandbox-ingress-gateway` Deployment + Service（ClusterIP）、gateway RBAC |
 | `server.yaml` | `opensandbox-server` Deployment + Service、`configToml` ConfigMap。引用 `opensandbox-api-key` Secret 读取 API 密钥 |
 | `ingress.yaml` | Traefik Ingress → `opensandbox-server:80`，主机名 `sandbox.lab.csharpkit.com` |
+| `gateway-ingress.yaml` | Traefik Ingress → `opensandbox-ingress-gateway:80`，主机名 `sandbox-gateway.lab.csharpkit.com`；独立承载 URI 路由的沙箱流量 |
 | `sealed-secret-api-key.yaml` | 由用户在首次部署后填充（见下）。不包含明文 |
 
 ### 网关路由
 
-Server 使用 gateway ingress 和 URI 路由模式。`gateway.address` 应与外部
-Ingress 配置的域名一致：
+Server API 使用 `sandbox.lab.csharpkit.com`；按路径形式访问沙箱时使用独立的
+`sandbox-gateway.lab.csharpkit.com`，该域名由 `gateway-ingress.yaml` 转发到
+Ingress Gateway。URI 模式下 `gateway.address` 配置为具体主机名（不带协议或
+`*.`）；现有 `*.lab.csharpkit.com` DNS A 记录覆盖此主机名，证书仍由现有
+`letsencrypt-prod` HTTP-01 按具体域名签发。
 
 ```toml
 [ingress]
 mode = "gateway"
-gateway.address = "sandbox.lab.csharpkit.com"
+gateway.address = "sandbox-gateway.lab.csharpkit.com"
 gateway.route.mode = "uri"
 ```
 
@@ -66,6 +70,7 @@ kubectl get crd | grep -E 'sandbox\.(opensandbox|fast)\.io'
 
 # API 到达 + 证书已签发
 kubectl get certificate -n opensandbox-system opensandbox-server-tls
+kubectl get certificate -n opensandbox-system opensandbox-gateway-tls
 curl --fail https://sandbox.lab.csharpkit.com/health
 ```
 

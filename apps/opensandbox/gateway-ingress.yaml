@@ -1,0 +1,26 @@
+---
+# Dedicated HTTPS entry for URI-based sandbox paths.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: opensandbox-gateway
+  namespace: opensandbox-system
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: sandbox-gateway.lab.csharpkit.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: opensandbox-ingress-gateway
+                port:
+                  number: 80
+  tls:
+    - hosts: [sandbox-gateway.lab.csharpkit.com]
+      secretName: opensandbox-gateway-tls
