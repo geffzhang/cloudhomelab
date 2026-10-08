@@ -8,7 +8,7 @@ OpenSandbox 1.1 部署在同步波次 0，源目录 `apps/opensandbox/`，由 Ar
 
 | 文件 | 内容 |
 |------|------|
-| `base.yaml` | 3 个 CRD（`BatchSandbox`、`Pool`、`SandboxSnapshot`）及其用户层 RBAC |
+| `base.yaml` | 7 个 CRD：3 个 `sandbox.opensandbox.io`（`BatchSandbox`、`Pool`、`SandboxSnapshot`）和 4 个 `sandbox.fast.io`（`Sandbox`、`SandboxTemplate`、`SandboxSnapshot`、`SandboxPool`），以及用户层 RBAC |
 | `registry.yaml` | `registry:2` Deployment + Service（ClusterIP）+ 5Gi PVC，作为集群内 OCI 仓库 |
 | `controller.yaml` | `opensandbox-controller-manager` Deployment、控制器 RBAC、metrics Service（默认未启用） |
 | `gateway.yaml` | `opensandbox-ingress-gateway` Deployment + Service（ClusterIP）、gateway RBAC |
@@ -49,8 +49,8 @@ git push
 # 所有 Pod 运行中
 kubectl get pods -n opensandbox-system
 
-# CRD 已安装
-kubectl get crd | grep opensandbox
+# OpenSandbox 与 fast-sandbox CRD 已安装
+kubectl get crd | grep -E 'sandbox\.(opensandbox|fast)\.io'
 
 # API 到达 + 证书已签发
 kubectl get certificate -n opensandbox-system opensandbox-server-tls
@@ -101,4 +101,4 @@ values 覆盖只调资源、路径内部资源开关、API key Secret 引用与�
 
 - 网关 `ClusterIP`，未对外暴露沙箱 URL。
 - secure-access keyring 未配置（路由令牌未签名）。
-- fast-sandbox（Firecracker）未启用 -- 本 VPS 无 KVM。沙箱仅能跑为容器。
+- fast-sandbox（Firecracker）工作负载未启用 -- 本 VPS 无 KVM；其 CRD 已注册，但沙箱仍仅能跑为容器。
