@@ -16,6 +16,18 @@ OpenSandbox 1.1 部署在同步波次 0，源目录 `apps/opensandbox/`，由 Ar
 | `ingress.yaml` | Traefik Ingress → `opensandbox-server:80`，主机名 `sandbox.lab.csharpkit.com` |
 | `sealed-secret-api-key.yaml` | 由用户在首次部署后填充（见下）。不包含明文 |
 
+### 网关路由
+
+Server 使用 gateway ingress 和 URI 路由模式。`gateway.address` 应与外部
+Ingress 配置的域名一致：
+
+```toml
+[ingress]
+mode = "gateway"
+gateway.address = "sandbox.lab.csharpkit.com"
+gateway.route.mode = "uri"
+```
+
 ## 首次部署
 
 合并到 `main` 后，ArgoCD 同步所有资源。`opensandbox-server` 在缺失 `opensandbox-api-key` Secret 时拒绝启动（fail-fast），因此首次部署后必须执行 `sealapi` 步骤。controller、gateway、registry 与 CRD 不依赖该 Secret，正常起来。

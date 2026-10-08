@@ -87,7 +87,7 @@ data:
     mode = "gateway"
     
     gateway.address = "sandbox.lab.csharpkit.com"
-    gateway.route.mode = "header"
+    gateway.route.mode = "uri"
 ---
 # Source: opensandbox-server/templates/rbac.yaml
 apiVersion: rbac.authorization.k8s.io/v1
