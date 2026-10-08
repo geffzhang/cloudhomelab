@@ -142,7 +142,7 @@ spec:
             - "--namespace=opensandbox"
             - "--port=28888"
             - "--provider-type=batchsandbox"
-            - "--mode=header"
+            - "--mode=uri"
             - "--log-level=info"
           ports:
             - name: http
