@@ -31,7 +31,7 @@
 - `tests/argocd-cmp/render.sh`：离线验证配置解析、渲染及错误路径。
 - `tests/bootstrap/argocd-cmp.sh`：使用 mock kubectl 验证 bootstrap CMP 安装流程。
 - `argocd/app-9router.yaml`、`argocd/platform-config.yaml`、`argocd/platform-keycloak.yaml`、`argocd/platform-opensandbox.yaml`：将对应 Git 路径型应用切换为 CMP source。
-- `apps/9router/ingress.yaml`、`apps/keycloak/ingress.yaml`、`apps/keycloak/keycloak-cr.yaml`、`apps/keycloak/realm-import.yaml`、`apps/opensandbox/ingress.yaml`、`apps/opensandbox/gateway-ingress.yaml`、`apps/opensandbox/server.yaml`、`platform/config/argocd-ingress.yaml`：用 `${CLUSTER_DOMAIN}` 替换服务域名。
+- `apps/9router/ingress.yaml`、`apps/keycloak/ingress.yaml`、`apps/keycloak/keycloak-cr.yaml`、`apps/keycloak/realm-import.yaml`、`apps/opensandbox/ingress.yaml`、`apps/opensandbox/gateway-ingress.yaml`、`apps/opensandbox/registry.yaml`、`apps/opensandbox/server.yaml`、`platform/config/argocd-ingress.yaml`、`platform/config/namespaces.yaml`：用 `${CLUSTER_DOMAIN}` 替换服务域名及解释域名的文字。
 - `platform/config/grafana-ingress.yaml`：新增由 CMP 管理的 Grafana Ingress。
 - `platform/monitoring/values.yaml`：关闭 chart 自带 Grafana Ingress。
 - `docs/networking.md`、`docs/RUNBOOK.md`：说明域名配置来源及 DNS 操作。
@@ -94,7 +94,7 @@ CLUSTER_DOMAIN=lab.csharpkit.com
 1. 从当前源目录向上定位仓库根目录中的 `config/domains.env`，限制查找深度，找不到时报错。
 2. 逐行解析配置，不使用 `source` 或 `eval`；拒绝未知键、重复键、空值及非 DNS 域名格式。
 3. 用安全的 Bash 正则校验小写 DNS 标签：每个标签 1–63 字符，只允许字母、数字和中间连字符，禁止空标签、开头/结尾连字符；域名必须至少包含一个点。
-4. 对当前源目录下按稳定顺序找到的 `.yaml` / `.yml` 文件执行定向替换 `\${CLUSTER_DOMAIN}`，替换值已限制为字母、数字、点和连字符；其它内容逐字保留。
+4. 对当前源目录下按稳定顺序找到的 `.yaml` / `.yml` 文件执行定向替换 `\${CLUSTER_DOMAIN}`，替换值已限制为字母、数字、点和连字符；其它内容逐字保留。多文件输出之间插入 `---` 文档分隔符，确保无尾换行的输入文件不会与后续 YAML 文档粘连。
 5. 任一文件读取或替换失败时返回非零，不得将失败吞掉。
 
 不要使用无参数的 `envsubst`，以免清空 `${ADMIN_PASSWORD}` 等现有占位符。
@@ -165,7 +165,7 @@ ConfigMap 同时挂载 `plugin.yaml` 和 `render.sh` 到 CMP sidecar 的
 
 - [ ] **Step 4: 实现 bootstrap helper 并接入安装顺序**
 
-helper 从 repo-server Deployment 读取主容器 image，创建或更新 CMP ConfigMap，再以 strategic merge patch 添加 sidecar。sidecar 使用 `var-files` 和 `plugins` 共享卷、专属 `cmp-tmp` 卷、ConfigMap 配置挂载，以及受限资源 requests/limits。等待 repo-server rollout 成功后才返回。
+helper 从 repo-server Deployment 读取主容器 image，创建或更新 CMP ConfigMap，再以 strategic merge patch 添加 sidecar。将插件配置与脚本的 SHA-256 写入 Pod template annotation，配置变化时才触发新 rollout。sidecar 使用 `var-files` 和 `plugins` 共享卷、专属 `cmp-tmp` 卷、ConfigMap 配置挂载，以及受限资源 requests/limits。等待 repo-server rollout 成功后才返回。
 
 在 `bootstrap/install.sh` 中 source helper，并在 repo-server 已安装且 ready 后、应用 root app-of-apps 之前调用：
 
@@ -205,7 +205,9 @@ git commit -m "feat: install domain CMP with Argo CD" -m "Co-authored-by: Copilo
 - Modify: `apps/opensandbox/ingress.yaml`
 - Modify: `apps/opensandbox/gateway-ingress.yaml`
 - Modify: `apps/opensandbox/server.yaml`
+- Modify: `apps/opensandbox/registry.yaml`
 - Modify: `platform/config/argocd-ingress.yaml`
+- Modify: `platform/config/namespaces.yaml`
 - Create: `platform/config/grafana-ingress.yaml`
 - Modify: `platform/monitoring/values.yaml`
 - Test: `tests/argocd-cmp/render.sh`
@@ -231,7 +233,7 @@ plugin:
   name: homelab-domain
 ```
 
-将 `9router`、`argo`、`keycloak`、`sandbox`、`sandbox-gateway` 和 `grafana` 主机以及 Keycloak 的 hostname、realm root URL、redirect URI、web origin、OpenSandbox TOML gateway 地址中的 `lab.csharpkit.com` 后缀统一替换成 `${CLUSTER_DOMAIN}`。保留每项前面的服务名、`https://`、OAuth 路径、TLS Secret 和 Service 后端；不得替换 namespace 标签键中的域名。
+将 `9router`、`argo`、`keycloak`、`sandbox`、`sandbox-gateway` 和 `grafana` 主机以及 Keycloak 的 hostname、realm root URL、redirect URI、web origin、OpenSandbox TOML gateway 地址、`platform/config/namespaces.yaml` 中展示的服务 URL、`apps/opensandbox/registry.yaml` 中解释 wildcard DNS 的注释统一改用 `${CLUSTER_DOMAIN}`。保留每项前面的服务名、`https://`、OAuth 路径、TLS Secret 和 Service 后端；不得替换 `homelab.csharpkit.com/description` 等 Kubernetes annotation/label 键。
 
 - [ ] **Step 3: 将 Grafana Ingress 从 Helm values 迁出**
 
@@ -248,7 +250,7 @@ Expected: 默认值和自定义 fixture 域名都出现在所有预期主机/URL
 - [ ] **Step 5: 提交应用接入**
 
 ```bash
-git add argocd/app-9router.yaml argocd/platform-config.yaml argocd/platform-keycloak.yaml argocd/platform-opensandbox.yaml apps/9router/ingress.yaml apps/keycloak/ingress.yaml apps/keycloak/keycloak-cr.yaml apps/keycloak/realm-import.yaml apps/opensandbox/ingress.yaml apps/opensandbox/gateway-ingress.yaml apps/opensandbox/server.yaml platform/config/argocd-ingress.yaml platform/config/grafana-ingress.yaml platform/monitoring/values.yaml tests/argocd-cmp/render.sh
+git add argocd/app-9router.yaml argocd/platform-config.yaml argocd/platform-keycloak.yaml argocd/platform-opensandbox.yaml apps/9router/ingress.yaml apps/keycloak/ingress.yaml apps/keycloak/keycloak-cr.yaml apps/keycloak/realm-import.yaml apps/opensandbox/ingress.yaml apps/opensandbox/gateway-ingress.yaml apps/opensandbox/registry.yaml apps/opensandbox/server.yaml platform/config/argocd-ingress.yaml platform/config/namespaces.yaml platform/config/grafana-ingress.yaml platform/monitoring/values.yaml bootstrap/argocd-cmp/render.sh bootstrap/argocd-cmp-install.sh tests/argocd-cmp/render.sh tests/bootstrap/argocd-cmp.sh docs/superpowers/specs/2026-10-09-yaml-domain-variables-design.md docs/superpowers/plans/2026-10-09-yaml-domain-variables.md
 git commit -m "feat: centralize service domains in manifests" -m "Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
 

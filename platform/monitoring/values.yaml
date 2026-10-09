@@ -51,14 +51,7 @@ grafana:
     requests: { cpu: 20m, memory: 100Mi }
     limits: { memory: 200Mi }
   ingress:
-    enabled: true
-    ingressClassName: traefik
-    annotations:
-      cert-manager.io/cluster-issuer: letsencrypt-prod
-    hosts: [grafana.lab.csharpkit.com]
-    tls:
-      - hosts: [grafana.lab.csharpkit.com]
-        secretName: grafana-tls
+    enabled: false
 
 # Single-node: control-plane components run inside k3s's single process and
 # don't expose these endpoints separately, so scraping them only creates noise.

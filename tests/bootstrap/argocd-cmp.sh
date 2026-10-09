@@ -55,6 +55,8 @@ grep -Fq '"name":"homelab-domain-cmp"' "$MOCK_PATCH"
 grep -Fq '"image":"quay.io/argoproj/argocd:v-test"' "$MOCK_PATCH"
 grep -Fq '"runAsUser":999' "$MOCK_PATCH"
 grep -Fq '"name":"cmp-tmp"' "$MOCK_PATCH"
+EXPECTED_CHECKSUM="$({ cat "$REPO_ROOT/bootstrap/argocd-cmp/plugin.yaml"; printf '\0'; cat "$REPO_ROOT/bootstrap/argocd-cmp/render.sh"; } | sha256sum | awk '{print $1}')"
+grep -Fq "\"homelab.csharpkit.com/domain-cmp-checksum\":\"$EXPECTED_CHECKSUM\"" "$MOCK_PATCH"
 grep -Fq 'rollout status deployment/argocd-repo-server --timeout=300s' "$MOCK_CALLS"
 
 MOCK_ROLLOUT_STATUS=1

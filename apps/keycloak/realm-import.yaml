@@ -56,46 +56,46 @@ spec:
         publicClient: false
         standardFlowEnabled: true
         directAccessGrantsEnabled: false
-        rootUrl: https://argo.lab.csharpkit.com
+        rootUrl: https://argo.${CLUSTER_DOMAIN}
         baseUrl: /
         redirectUris:
-          - https://argo.lab.csharpkit.com/auth/callback
+          - https://argo.${CLUSTER_DOMAIN}/auth/callback
         webOrigins:
-          - https://argo.lab.csharpkit.com
+          - https://argo.${CLUSTER_DOMAIN}
         secret: ${ARGOCD_CLIENT_SECRET}
       - clientId: grafana
         enabled: true
         publicClient: false
         standardFlowEnabled: true
         directAccessGrantsEnabled: false
-        rootUrl: https://grafana.lab.csharpkit.com
+        rootUrl: https://grafana.${CLUSTER_DOMAIN}
         baseUrl: /
         redirectUris:
-          - https://grafana.lab.csharpkit.com/login/generic_oauth
+          - https://grafana.${CLUSTER_DOMAIN}/login/generic_oauth
         webOrigins:
-          - https://grafana.lab.csharpkit.com
+          - https://grafana.${CLUSTER_DOMAIN}
         secret: ${GRAFANA_CLIENT_SECRET}
       - clientId: 9router
         enabled: true
         publicClient: false
         standardFlowEnabled: true
         directAccessGrantsEnabled: false
-        rootUrl: https://9router.lab.csharpkit.com
+        rootUrl: https://9router.${CLUSTER_DOMAIN}
         baseUrl: /
         redirectUris:
-          - https://9router.lab.csharpkit.com/auth/callback
+          - https://9router.${CLUSTER_DOMAIN}/auth/callback
         webOrigins:
-          - https://9router.lab.csharpkit.com
+          - https://9router.${CLUSTER_DOMAIN}
         secret: ${NINEROUTER_CLIENT_SECRET}
       - clientId: opensandbox
         enabled: true
         publicClient: false
         standardFlowEnabled: true
         directAccessGrantsEnabled: false
-        rootUrl: https://sandbox.lab.csharpkit.com
+        rootUrl: https://sandbox.${CLUSTER_DOMAIN}
         baseUrl: /
         redirectUris:
-          - https://sandbox.lab.csharpkit.com/auth/callback
+          - https://sandbox.${CLUSTER_DOMAIN}/auth/callback
         webOrigins:
-          - https://sandbox.lab.csharpkit.com
+          - https://sandbox.${CLUSTER_DOMAIN}
         secret: ${OPENSANDBOX_CLIENT_SECRET}

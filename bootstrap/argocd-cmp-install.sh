@@ -3,6 +3,7 @@
 configure_argocd_domain_cmp() {
   local cmp_dir="$1"
   local repo_server_image
+  local cmp_checksum
   local patch
 
   [[ -f "$cmp_dir/plugin.yaml" ]] || {
@@ -11,6 +12,14 @@ configure_argocd_domain_cmp() {
   }
   [[ -f "$cmp_dir/render.sh" ]] || {
     echo "CMP renderer not found: $cmp_dir/render.sh" >&2
+    return 1
+  }
+  cmp_checksum="$({ cat "$cmp_dir/plugin.yaml"; printf '\0'; cat "$cmp_dir/render.sh"; } | sha256sum | awk '{print $1}')" || {
+    echo "failed to calculate Argo CD domain CMP checksum" >&2
+    return 1
+  }
+  [[ -n "$cmp_checksum" ]] || {
+    echo "Argo CD domain CMP checksum is empty" >&2
     return 1
   }
 
@@ -37,6 +46,11 @@ configure_argocd_domain_cmp() {
 {
   "spec": {
     "template": {
+      "metadata": {
+        "annotations": {
+          "homelab.csharpkit.com/domain-cmp-checksum": "$cmp_checksum"
+        }
+      },
       "spec": {
         "containers": [{
           "name": "homelab-domain-cmp",

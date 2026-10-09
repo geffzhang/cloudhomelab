@@ -23,6 +23,8 @@ spec:
     repoURL: https://github.com/geffzhang/cloudhomelab
     targetRevision: main
     path: apps/opensandbox
+    plugin:
+      name: homelab-domain
   destination:
     server: https://kubernetes.default.svc
     namespace: opensandbox-system

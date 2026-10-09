@@ -19,7 +19,8 @@ hostname 和 OAuth 回调地址、OpenSandbox gateway 地址，以及 Grafana He
 - `CLUSTER_DOMAIN` 表示完整的集群主机后缀（例如 `lab.example.net`），不含协议、
   通配符、尾随句点或服务子域。服务子域仍由各应用配置指定。
 - 只把服务端点域名变量化。`homelab.csharpkit.com/...` Kubernetes 标签键不变；
-  Secret 名称、Service 名称及与域名无关的配置也不变。
+- namespace `description` 注解中展示的服务 URL 也使用同一变量，避免换域名后说明过期。
+  注解键 `homelab.csharpkit.com/description`、Secret 名称、Service 名称及与域名无关的配置不变。
 
 ### Argo CD 渲染
 
@@ -36,6 +37,8 @@ hostname 和 OAuth 回调地址、OpenSandbox gateway 地址，以及 Grafana He
   内置 Ingress，确保 Grafana 主机名也只依赖中心配置。
 - 所有包含 Git 仓库路径的受影响 Argo CD Application 均使用该插件；外部 chart
   source 不切换到插件。repo-server 插件配置通过仓库现有 bootstrap 流程安装和维护。
+- 插件配置和渲染脚本的校验和记录在 repo-server Pod template 注解中；仅插件文件变化时触发
+  sidecar rollout，内容未变时重复运行 bootstrap 不触发额外 rollout。
 
 ### 变量覆盖范围
 
@@ -43,6 +46,9 @@ hostname 和 OAuth 回调地址、OpenSandbox gateway 地址，以及 Grafana He
 
 - Argo CD、9Router、Keycloak、Grafana、OpenSandbox API 和 OpenSandbox gateway 的
   Ingress 主机及 TLS 主机。
+- `platform/config/namespaces.yaml` 中面向运维人员展示的 Argo CD、9Router、Keycloak、
+  Grafana 和 OpenSandbox 服务 URL。
+- `apps/opensandbox/registry.yaml` 中解释集群 wildcard DNS 范围的注释。
 - Keycloak CR 的公开与管理 hostname，以及 realm 导入中的各客户端 root URL、
   redirect URI 和 web origin。
 - OpenSandbox server 内嵌 TOML 中的 gateway 地址。

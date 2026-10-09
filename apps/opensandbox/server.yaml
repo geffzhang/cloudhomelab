@@ -86,7 +86,7 @@ data:
     [ingress]
     mode = "gateway"
     
-    gateway.address = "sandbox-gateway.lab.csharpkit.com"
+    gateway.address = "sandbox-gateway.${CLUSTER_DOMAIN}"
     gateway.route.mode = "uri"
 ---
 # Source: opensandbox-server/templates/rbac.yaml

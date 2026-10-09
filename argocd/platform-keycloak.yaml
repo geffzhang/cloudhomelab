@@ -17,6 +17,8 @@ spec:
     repoURL: https://github.com/geffzhang/cloudhomelab
     targetRevision: main
     path: apps/keycloak
+    plugin:
+      name: homelab-domain
   destination:
     server: https://kubernetes.default.svc
     namespace: keycloak

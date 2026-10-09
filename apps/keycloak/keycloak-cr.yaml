@@ -11,8 +11,8 @@ metadata:
 spec:
   instances: 1
   hostname:
-    hostname: https://keycloak.lab.csharpkit.com
-    admin: https://keycloak.lab.csharpkit.com
+    hostname: https://keycloak.${CLUSTER_DOMAIN}
+    admin: https://keycloak.${CLUSTER_DOMAIN}
     strict: false
   proxy:
     headers: xforwarded

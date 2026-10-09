@@ -1,26 +1,23 @@
----
-# Dedicated HTTPS entry for URI-based sandbox paths.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: opensandbox-gateway
-  namespace: opensandbox-system
+  name: grafana
+  namespace: monitoring
   annotations:
-    argocd.argoproj.io/sync-wave: "5"
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: traefik
   rules:
-    - host: sandbox-gateway.${CLUSTER_DOMAIN}
+    - host: grafana.${CLUSTER_DOMAIN}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: opensandbox-ingress-gateway
+                name: monitoring-grafana
                 port:
                   number: 80
   tls:
-    - hosts: ["sandbox-gateway.${CLUSTER_DOMAIN}"]
-      secretName: opensandbox-gateway-tls
+    - hosts: ["grafana.${CLUSTER_DOMAIN}"]
+      secretName: grafana-tls

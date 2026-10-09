@@ -49,6 +49,11 @@ if ! find . -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 | LC_ALL=C sor
 fi
 [[ -s "$file_list" ]] || fail "no YAML files found under $PWD"
 
+first_file=true
 while IFS= read -r -d '' file; do
+  if [[ "$first_file" == false ]]; then
+    printf '\n---\n'
+  fi
   sed "s|\${CLUSTER_DOMAIN}|${domain}|g" "$file"
+  first_file=false
 done < "$file_list"

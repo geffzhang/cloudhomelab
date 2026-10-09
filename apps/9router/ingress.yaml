@@ -9,7 +9,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: 9router.lab.csharpkit.com
+    - host: 9router.${CLUSTER_DOMAIN}
       http:
         paths:
           - path: /
@@ -19,5 +19,5 @@ spec:
                 name: router
                 port: { number: 80 }
   tls:
-    - hosts: [9router.lab.csharpkit.com]
+    - hosts: ["9router.${CLUSTER_DOMAIN}"]
       secretName: 9router-tls

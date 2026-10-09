@@ -12,6 +12,8 @@ spec:
     repoURL: https://github.com/geffzhang/cloudhomelab
     targetRevision: main
     path: platform/config
+    plugin:
+      name: homelab-domain
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd

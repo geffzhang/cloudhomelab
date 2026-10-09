@@ -1,6 +1,6 @@
 ---
 # Public route to the OpenSandbox lifecycle API server. The wildcard DNS record
-# *.lab.csharpkit.com already resolves to the node, so cert-manager will issue
+# *.${CLUSTER_DOMAIN} already resolves to the node, so cert-manager will issue
 # a Let's Encrypt certificate via HTTP-01 on the first request to this host.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -13,7 +13,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: sandbox.lab.csharpkit.com
+    - host: sandbox.${CLUSTER_DOMAIN}
       http:
         paths:
           - path: /
@@ -24,5 +24,5 @@ spec:
                 port:
                   number: 80
   tls:
-    - hosts: [sandbox.lab.csharpkit.com]
+    - hosts: ["sandbox.${CLUSTER_DOMAIN}"]
       secretName: opensandbox-server-tls

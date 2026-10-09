@@ -7,7 +7,7 @@
 # the Service below. The registry runs without auth - it is ClusterIP-only and
 # only reachable from inside the cluster, which is sufficient for the
 # snapshot pipeline. Reachable from the host only by accident: the wildcard
-# *.lab.csharpkit.com DNS does not resolve it and no Service of type
+# *.${CLUSTER_DOMAIN} DNS does not resolve it and no Service of type
 # NodePort/LoadBalancer is exposed.
 #
 # Sized for a few suspended sandboxes; bump the PVC if pause/resume use grows.

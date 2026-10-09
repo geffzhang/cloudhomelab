@@ -12,7 +12,7 @@ metadata:
     homelab.csharpkit.com/description: >-
       Observability stack (kube-prometheus-stack): Prometheus, Grafana with
       the curated Homelab Overview dashboard, exporters. Public Grafana at
-      grafana.lab.csharpkit.com.
+      grafana.${CLUSTER_DOMAIN}.
   labels:
     app.kubernetes.io/part-of: homelab
 ---
@@ -36,7 +36,7 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false
     homelab.csharpkit.com/description: >-
       GitOps control plane: ArgoCD watches github.com/geffzhang/cloudhomelab and
-      keeps this cluster matching it. UI at argo.lab.csharpkit.com.
+      keeps this cluster matching it. UI at argo.${CLUSTER_DOMAIN}.
   labels:
     app.kubernetes.io/part-of: homelab
 ---
@@ -49,7 +49,7 @@ metadata:
     homelab.csharpkit.com/description: >-
       9Router: self-hosted AI gateway providing rate-limit fallback for
       Claude Code across 40+ providers. Holds subscription OAuth tokens and
-      issued API keys on its PVC. Public at 9router.lab.csharpkit.com.
+      issued API keys on its PVC. Public at 9router.${CLUSTER_DOMAIN}.
   labels:
     app.kubernetes.io/part-of: homelab
 ---
@@ -62,7 +62,7 @@ metadata:
     homelab.csharpkit.com/description: >-
       OpenSandbox 1.1 control plane: controller, lifecycle API server,
       ingress gateway, and in-cluster OCI registry used for sandbox
-      pause/resume snapshots. Public API at sandbox.lab.csharpkit.com.
+      pause/resume snapshots. Public API at sandbox.${CLUSTER_DOMAIN}.
   labels:
     app.kubernetes.io/part-of: homelab
 ---
@@ -102,6 +102,6 @@ metadata:
     homelab.csharpkit.com/description: >-
       Keycloak 26.8 OIDC identity provider (operator-managed). Hosts the
       Keycloak server StatefulSet and the `homelab` realm import. Public
-      admin console at keycloak.lab.csharpkit.com.
+      admin console at keycloak.${CLUSTER_DOMAIN}.
   labels:
     app.kubernetes.io/part-of: homelab

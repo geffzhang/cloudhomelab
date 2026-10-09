@@ -11,6 +11,8 @@ spec:
     repoURL: https://github.com/geffzhang/cloudhomelab
     targetRevision: main
     path: apps/9router
+    plugin:
+      name: homelab-domain
   destination:
     server: https://kubernetes.default.svc
     namespace: 9router
