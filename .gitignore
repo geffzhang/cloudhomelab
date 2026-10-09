@@ -6,3 +6,6 @@ sealing-key-backup.yaml
 
 # Local Claude worktrees are per-machine state, never committed.
 .claude/worktrees/
+
+# Local Git worktrees are per-machine state, never committed.
+.worktrees/
