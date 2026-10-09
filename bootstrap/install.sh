@@ -11,6 +11,7 @@ REPO_URL="https://github.com/geffzhang/cloudhomelab"
 ARGOCD_VERSION="stable"
 BOOTSTRAP_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$BOOTSTRAP_DIR/k3s-registry.sh"
+source "$BOOTSTRAP_DIR/argocd-cmp-install.sh"
 
 log() { echo -e "\033[1;32m[homelab]\033[0m $*"; }
 
@@ -149,6 +150,8 @@ $KUBECTL -n argocd rollout status statefulset argocd-application-controller --ti
 $KUBECTL -n argocd rollout status deployment argocd-repo-server --timeout=300s
 $KUBECTL -n argocd rollout status deployment argocd-redis --timeout=300s
 $KUBECTL -n argocd rollout status deployment argocd-applicationset-controller --timeout=300s
+log "Installing the domain Config Management Plugin..."
+configure_argocd_domain_cmp "$BOOTSTRAP_DIR/argocd-cmp"
 
 # ── 3. Root app-of-apps, from here on, git is the source of truth ──────────
 log "Applying root application (GitOps takes over)..."

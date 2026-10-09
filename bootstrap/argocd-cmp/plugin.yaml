@@ -1,0 +1,11 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ConfigManagementPlugin
+metadata:
+  name: homelab-domain
+spec:
+  discover:
+    fileName: "*.yaml"
+  generate:
+    command:
+      - /bin/bash
+      - /home/argocd/cmp-server/config/render.sh
