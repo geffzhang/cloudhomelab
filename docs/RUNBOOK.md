@@ -5,7 +5,7 @@
 
 ## 初始化新服务器或迁移集群
 
-1. **DNS**：将通配符 A 记录 `*.lab.csharpkit.com` 指向新 VPS 的 IP。
+1. **域名与 DNS**：确认 [`config/domains.env`](../config/domains.env) 中的 `CLUSTER_DOMAIN`。默认值为 `lab.csharpkit.com`；将 `*.<CLUSTER_DOMAIN>`（例如 `*.lab.csharpkit.com`）的通配符 A 记录指向新 VPS 的 IP。改用其他值时，先设置配置文件，再为对应的 wildcard 创建记录。
 2. **初始化**：
    ```bash
   git clone https://github.com/geffzhang/cloudhomelab && cd cloudhomelab

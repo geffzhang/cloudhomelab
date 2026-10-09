@@ -2,6 +2,15 @@
 
 One node, one IP, many cluster hostnames. This document describes how names reach the node, how the node routes them, and how certificates are issued. One user-facing application is self-hosted through this cluster: 9Router. Supporting hosts expose infrastructure services such as ArgoCD and Grafana. For the decisions behind this design, see [ADR-005](adr/005-wildcard-dns-traefik-sni-routing.md) and [ADR-004](adr/004-cert-manager-http01-vs-dns01.md).
 
+The cluster hostname suffix is configured once in [`config/domains.env`](../config/domains.env) as `CLUSTER_DOMAIN`. Its current value is `lab.csharpkit.com`; the CMP renders that value into Git-managed Kubernetes YAML. Kubernetes metadata keys such as `homelab.csharpkit.com/description` are fixed identifiers and are not part of this setting.
+
+## Changing the cluster hostname suffix
+
+1. Set `CLUSTER_DOMAIN` in `config/domains.env` to the complete suffix, for example `lab.example.net` (no scheme, wildcard, service subdomain, port, or trailing dot).
+2. Point `*.lab.example.net` at the node IP. Keep DNS and `CLUSTER_DOMAIN` in sync; cert-manager can only issue certificates after each host resolves to the node.
+3. Commit the change. Argo CD renders the service Ingress hosts, TLS hosts, Keycloak public URLs, OpenSandbox gateway URL, and namespace descriptions from the new value.
+4. Check the affected Argo CD applications and certificates after sync. Update external clients or bookmarks that store the old URLs.
+
 ## Wildcard DNS
 
 A single wildcard A record, `*.lab.csharpkit.com`, points at the node IP. Any subdomain under `lab.csharpkit.com` resolves to the node with no further DNS change, so adding a service never touches DNS.
@@ -40,7 +49,7 @@ flowchart LR
 | Host | Backend | Notes |
 |------|---------|-------|
 | `argo.lab.csharpkit.com` | ArgoCD server | TLS at Traefik; ArgoCD runs insecure internally |
-| `grafana.lab.csharpkit.com` | Grafana | Ingress defined in the monitoring chart values |
+| `grafana.lab.csharpkit.com` | Grafana | Standalone Ingress rendered by the domain CMP; Helm chart Ingress is disabled |
 | `9router.lab.csharpkit.com` | Authenticated 9Router AI gateway | `9router-tls`; API key required; OAuth tokens and issued API keys stored on its PVC |
 
 ## Adding a custom domain to an app
